@@ -53,21 +53,20 @@ function getSwatchColor(type) {
 	}
 }
 
-function updateSiteColors(type, color) {
-	/*
-	if (type === "test") {
-		alert(this.val());
-	}
-	*/
+// based on palette.css as of 3/13/2018
+function updateSiteColors(type, color) {	
 	switch (type) {
+		// ::::: TEXT :::::
 		case 'text':
 			$('body').css('color', color);
 			$('html').css('color', color);
+			$('a').off('mouseenter mouseleave');
 			$('a').hover(
 				function() { $(this).css('color', color); },
 				function() { $(this).css('color', getSwatchColor('link')); }
 			);
 			$('.logo2').css('color', color);
+			$('.boxLink').off('mouseenter mouseleave');
 			$('.boxLink').hover(
 				function() { 
 					$(this).css('background', color
@@ -80,12 +79,64 @@ function updateSiteColors(type, color) {
 			);
 			$('.searchInput').css('color', color);
 			$('.CSVtags').css('color', color);
-			$('.uiWindow, .closeTab').hover(
+			$('.uiWindow.closeTab').off('mouseenter mouseleave');
+			$('.uiWindow.closeTab').hover(
 				function() { $(this).css('background', color); },
 				function() { $(this).css('background', getSwatchColor('button')); }
 			);
 			$('.list').css('background', color);
 			break;
+		// ::::: LINK :::::
+		case 'link':
+			$('a').css('color', color);
+			$('a.boxLink').off('mouseenter mouseleave');
+			$('a.boxLink').hover(
+				function() { $(this).css('color', getSwatchColor('bottom')); },
+				function() { $(this).css('color', color); }
+			);
+			$('a.footerMenu').off('mouseenter mouseleave');
+			$('a.footerMenu').hover(
+				function() { 
+					$(this).css('border-right', '1px solid ' 
+					+ getSwatchColor('button')); 
+				},
+				function() { 
+					$(this).css('border-right', '1px solid ' 
+					+ color);
+				}
+			);
+			break;
+		// ::::: BUTTON :::::
+		case 'button':
+			$('.levelProgress').css('background', color);
+			$('.levelProgress').css('border', color + ' 2px solid');
+			$('.logo1').css('color', color);
+			$('a.boxLink').off('mouseenter mouseleave');
+			$('a.boxLink').hover(
+				function() { $(this).css('background', getSwatchColor('bottom')); },
+				function() { $(this).css('background', color); }
+			);
+			$('.tmono').css('background', color);
+			$('.CSVtags').css('background', color);
+			$('.uiWindow').css('border', '2px solid ' + color);
+			$('.uiWindow.closeTab').off('mouseenter mouseleave');
+			$('.uiWindow.closeTab').hover(
+				function() { $(this).css('background', getSwatchColor('text')); },
+				function() { $(this).css('background', color); }
+			);
+			$('#footer').css('border-top', color + ' solid 3px');
+			$('a.footerMenu').off('mouseenter mouseleave');
+			$('a.footerMenu').hover(
+				function() { 
+					$(this).css('border-right', '1px solid ' 
+					+ color); 
+				},
+				function() { 
+					$(this).css('border-right', '1px solid ' 
+					+ getSwatchColor('link'));
+				}
+			);
+		// ::::: UHHHHHH :::::
 		default:
 	}	
 }
@@ -138,11 +189,10 @@ $(document).ready(function() {
 			var luminance = 0.2990*rgb.r + 
 			                0.5870*rgb.g +
 			                0.1440*rgb.b;
-			if (luminance > 100.00) {
-				colorwell.parent().css('color', '#000');
-			} else {
-				colorwell.parent().css('color', '#fff');				
-			}
+			var luma_color = luminance > 100.00 ? '#000' : '#fff';
+			//colorwell.parent().css('color', '#000');
+			colorwell.css('color', luma_color);
+			colorwell.parent().css('color', luma_color);
 		});
 		colorwell.change(); // run init
 	});
