@@ -66,13 +66,13 @@ function updateSiteColors(type, color) {
 			$('.logo2').css('color', color);
 			$('.boxLink').off('mouseenter mouseleave');
 			$('.boxLink').hover(
-				function() { 
-					$(this).css('background', color
-					+ ' url(/styles/img/topNoiseShade.png) repeat-x' ); 
+				function() {
+					$(this).css('color', getSwatchColor('bottom')); // bottom
+					$(this).css('background', color); // text
 				},
-				function() { 
-					$(this).css('background', getSwatchColor('button')
-					+ ' url(/styles/img/topNoiseShade.png) repeat-x' ); 
+				function() {
+					$(this).css('color', getSwatchColor('link')); // link 
+					$(this).css('background', getSwatchColor('button')); // button
 				}
 			);
 			$('.searchInput').css('color', color);
@@ -87,10 +87,16 @@ function updateSiteColors(type, color) {
 		// ::::: LINK :::::
 		case 'link':
 			$('a').css('color', color);
-			$('a.boxLink').off('mouseenter mouseleave');
-			$('a.boxLink').hover(
-				function() { $(this).css('color', getSwatchColor('bottom')); },
-				function() { $(this).css('color', color); }
+			$('.boxLink').off('mouseenter mouseleave');
+			$('.boxLink').hover(
+				function() {
+					$(this).css('color', getSwatchColor('bottom')); // bottom
+					$(this).css('background', getSwatchColor('text')); // text
+				},
+				function() {
+					$(this).css('color', color); // link 
+					$(this).css('background', getSwatchColor('button')); // button
+				}
 			);
 			$('a.footerMenu').off('mouseenter mouseleave');
 			$('a.footerMenu').hover(
@@ -109,10 +115,17 @@ function updateSiteColors(type, color) {
 			$('.levelProgress').css('background', color);
 			$('.levelProgress').css('border', color + ' 2px solid');
 			$('.logo1').css('color', color);
-			$('a.boxLink').off('mouseenter mouseleave');
-			$('a.boxLink').hover(
-				function() { $(this).css('background', getSwatchColor('bottom')); },
-				function() { $(this).css('background', color); }
+			$('.boxLink').css('background-color', color);
+			$('.boxLink').off('mouseenter mouseleave');
+			$('.boxLink').hover(
+				function() {
+					$(this).css('color', getSwatchColor('bottom')); // bottom
+					$(this).css('background', getSwatchColor('text')); // text
+				},
+				function() {
+					$(this).css('color', getSwatchColor('link')); // link 
+					$(this).css('background', color); // button
+				}
 			);
 			$('.tmono').css('background', color);
 			$('.CSVtags').css('background', color);
@@ -138,7 +151,8 @@ function updateSiteColors(type, color) {
 		// ::::: BOX :::::
 		case 'box':
 			$('.inner').css('background-color', color);
-			$('#USER_STATUS.NoOPEN').css('border', '2px '+color+' solid;');
+			$('.boxLink').css('background-color', getSwatchColor('button'));
+			$('#USER_STATUS .NoOPEN').css('border', '2px '+color+' solid');
 			$('#StatusBoxBottomRow').css('border-top', color + ' 1px dotted');
 			$('.logo0').css('color', color);
 			$('.uiWindow').css('background-color', color);
@@ -148,10 +162,16 @@ function updateSiteColors(type, color) {
 		case 'bottom':
 			$('body, html').css('background-color', color);
 			$('.inner.highlight').css('box-shadow', '0 0 7px 3px ' + color);
-			$('a.boxLink').off('mouseenter mouseleave');
-			$('a.boxLink').hover(
-				function() { $(this).css('color', color); },
-				function() { $(this).css('color', getSwatchColor('link')); }
+			$('.boxLink').off('mouseenter mouseleave');
+			$('.boxLink').hover(
+				function() {
+					$(this).css('color', color); // bottom
+					$(this).css('background', getSwatchColor('text')); // text
+				},
+				function() {
+					$(this).css('color', getSwatchColor('link')); // link 
+					$(this).css('background', getSwatchColor('button')); // button
+				}
 			);
 			$('.searchInput').css('background', color);
 			$('.CSVtags').css('border', '1px '+color+' solid');
@@ -180,6 +200,10 @@ function updateSiteColors(type, color) {
 }
 
 $(document).ready(function() {
+	// remove text shadows (might implement later)
+	$('head').children('style:contains("#pageWrap{text-shadow")').remove();
+	$('#pageWrap').css('text-shadow', '');
+	$('a').css('text-shadow', '');
 	/* 
 	   set the backgrounds of the text inputs &
 	   create callbacks that properly set the values 
@@ -228,7 +252,6 @@ $(document).ready(function() {
 			                0.5870*rgb.g +
 			                0.1440*rgb.b;
 			var luma_color = luminance > 100.00 ? '#000' : '#fff';
-			//colorwell.parent().css('color', '#000');
 			colorwell.css('color', luma_color);
 			colorwell.parent().css('color', luma_color);
 		});
