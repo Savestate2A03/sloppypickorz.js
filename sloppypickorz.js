@@ -18,7 +18,6 @@ function hexValidator(hex) {
 function hexToRGB(hex) {
 	// be sure to check hexValidator(hex) before calling
 	var r, g, b;
-	if (hex)
 	hex = hex.substring(1, hex.length);
 	if (hex.length == 3) {
 		r = parseInt(hex.charAt(0), 16) * 16;
@@ -58,8 +57,7 @@ function updateSiteColors(type, color) {
 	switch (type) {
 		// ::::: TEXT :::::
 		case 'text':
-			$('body').css('color', color);
-			$('html').css('color', color);
+			$('body, html').css('color', color);
 			$('a').off('mouseenter mouseleave');
 			$('a').hover(
 				function() { $(this).css('color', color); },
@@ -136,7 +134,47 @@ function updateSiteColors(type, color) {
 					+ getSwatchColor('link'));
 				}
 			);
-		// ::::: UHHHHHH :::::
+			break;
+		// ::::: BOX :::::
+		case 'box':
+			$('.inner').css('background-color', color);
+			$('#USER_STATUS.NoOPEN').css('border', '2px '+color+' solid;');
+			$('#StatusBoxBottomRow').css('border-top', color + ' 1px dotted');
+			$('.logo0').css('color', color);
+			$('.uiWindow').css('background-color', color);
+			$('#footer').css('background', color + ' url(/styles/img/marble_bg.png)');
+			break;
+		// ::::: BOTTOM :::::
+		case 'bottom':
+			$('body, html').css('background-color', color);
+			$('.inner.highlight').css('box-shadow', '0 0 7px 3px ' + color);
+			$('a.boxLink').off('mouseenter mouseleave');
+			$('a.boxLink').hover(
+				function() { $(this).css('color', color); },
+				function() { $(this).css('color', getSwatchColor('link')); }
+			);
+			$('.searchInput').css('background', color);
+			$('.CSVtags').css('border', '1px '+color+' solid');
+			$('.uiWindow.closeTab').off('mouseenter mouseleave');
+			$('.uiWindow.closeTab').hover(
+				function() { $(this).css('color', color); },
+				function() { $(this).css('color', getSwatchColor('link')); }
+			);
+			$('.list').css('color', color);
+			$('#footer').css('box-shadow', '0px -10px 40px -10px ' + color);
+			$('#footer').css('-moz-box-shadow', '0px -10px 40px -10px ' + color);
+			$('#footer').css('-webkit-box-shadow', '0px -10px 40px -10px ' + color);
+			$('a.footerMenu').off('mouseenter mouseleave');
+			$('a.footerMenu').hover(
+				function() { 
+					$(this).css('background', color 
+					+ ' url(/styles/img/topNoiseShade.png) repeat-x'); 
+				},
+				function() { 
+					$(this).css('background', 'url(/styles/img/topNoiseShade.png) repeat-x'); 
+				}
+			);
+			break;
 		default:
 	}	
 }
