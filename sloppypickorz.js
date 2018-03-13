@@ -35,6 +35,95 @@ function hexToRGB(hex) {
 	}
 }
 
+// thanks to:
+// http://www.niwa.nu/2013/05/math-behind-colorspace-conversions-rgb-hsl/
+function rgbToHSL(rgb) {
+	var r, g, b;
+	// limit range 0.0-1.0
+	r = rgb.r / 255;
+	g = rgb.g / 255;
+	b = rgb.b / 255;
+	var min = Math.min(r, g, b);
+	var max = Math.min(r, g, b);
+	var luminace = (min + max) / 2;
+	var saturation = 
+		luminace < 0.5 ? 
+		(max-min)/(max+min) : 
+		(max-min)/(2.0-max-min);
+	var hue;
+	switch(max) {
+		case r:
+			hue = (g-b)/(max-min);
+		break;
+		case g:
+			hue = 2.0 + (b-r)/(max-min);
+		break;
+		case b:
+			hue = 4.0 + (r-g)/(max-min);
+		break;
+		default:
+			hue = 0.0
+	}
+	hue *= 60;
+	if (hue < 0) hue += 360;
+	return {
+		h: hue,
+		s: saturation,
+		l: luminace
+	}
+}
+
+// thanks to:
+// http://www.niwa.nu/2013/05/math-behind-colorspace-conversions-rgb-hsl/
+function hslToRGB(hsl) {
+	var h, s, l;
+	h = hsl.h;
+	s = hsl.s;
+	l = hsl.l;
+	var temp1, temp2;
+	if (l < 0.5) {
+		temp1 = l * (1.0+s);
+	} else {
+		temp1 = l+s - l*s
+	}
+	temp2 = 2*l - temp1;
+	h = h/360;
+	var tr, tg, tb; // temp
+	tr = h + 0.3333;
+	tg = h;
+	tb = h - 0.3333;
+	if (tr < 0) tr += 1; // clamps
+	if (tr > 1) tr -= 1;
+	if (tg < 0) tg += 1;
+	if (tg > 1) tg -= 1;
+	if (tb < 0) tb += 1;
+	if (tb > 1) tb -= 1;
+	var r, g, b;
+	// red
+	if (6*tr < 1) r = temp2 + (temp1-temp2)*6*tr;
+	else if (2*tr < 1) r = temp1;
+	else if (3*tr < 2) r = temp2 + (temp1-temp2)*(0.6666-tr)*6;
+	else r = temp2;
+	// green
+	if (6*tg < 1) g = temp2 + (temp1-temp2)*6*tg;
+	else if (2*tg < 1) g = temp1;
+	else if (3*tg < 2) g = temp2 + (temp1-temp2)*(0.6666-tg)*6;
+	else g = temp2;
+	// blue
+	if (6*tb < 1) b = temp2 + (temp1-temp2)*6*tb;
+	else if (2*tb < 1) b = temp1;
+	else if (3*tb < 2) b = temp2 + (temp1-temp2)*(0.6666-tb)*6;
+	else b = temp2;
+	r = Math.round(r*255);
+	g = Math.round(g*255);
+	b = Math.round(b*255);
+	return {
+		r: r,
+		g: g,
+		b: b
+	};
+}
+
 function getSwatchColor(type) {
 	switch(type) {
 		case 'text':
