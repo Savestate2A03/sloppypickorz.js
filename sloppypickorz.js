@@ -44,8 +44,8 @@ function rgbToHSL(rgb) {
 	g = rgb.g / 255;
 	b = rgb.b / 255;
 	var min = Math.min(r, g, b);
-	var max = Math.min(r, g, b);
-	var luminace = (min + max) / 2;
+	var max = Math.max(r, g, b);
+	var luminace = (min+max) / 2;
 	var saturation = 
 		luminace < 0.5 ? 
 		(max-min)/(max+min) : 
@@ -343,6 +343,16 @@ $(document).ready(function() {
 			var luma_color = luminance > 100.00 ? '#000' : '#fff';
 			colorwell.css('color', luma_color);
 			colorwell.parent().css('color', luma_color);
+			// debug 
+			var rgb = hexToRGB(color);
+			var hsl = rgbToHSL(rgb);
+			var rgb2 = hslToRGB(hsl);
+			$('.uiWindow p').html(
+				'COLOR ' + color 
+				+ '<br> :: R ' + rgb.r + ' G ' + rgb.g + ' B ' + rgb.b
+				+ '<br> :: H ' + hsl.h.toFixed(2) + ' S ' + hsl.s.toFixed(2) + ' L ' + hsl.l.toFixed(2)
+				+ '<br> :: (alt) R ' + rgb2.r + ' G ' + rgb2.g + ' B ' + rgb2.b
+			);
 		});
 		colorwell.change(); // run init
 	});
