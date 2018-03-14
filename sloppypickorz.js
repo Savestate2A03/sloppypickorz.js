@@ -288,6 +288,7 @@ function updateSiteColors(type, color) {
 	}	
 }
 
+
 $(document).ready(function() {
 	// remove text shadows (might implement later)
 	$('head').children('style:contains("#pageWrap{text-shadow")').remove();
@@ -297,9 +298,24 @@ $(document).ready(function() {
 	   set the backgrounds of the text inputs &
 	   create callbacks that properly set the values 
 	*/
+	var swatchFocused = {
+		'border': '2px solid', 
+		'padding': '3px' 
+	};
+	var swatchUnfocused = {
+		'border': '0px',
+		'padding': '5px'
+	};
 	$('.swatch').each(function () {
 		var swatch = $(this);
 		var colorwell = swatch.children('.colorwell');
+		// activate swatch on click
+		swatch.on('click', function() {
+			$('.swatch').each(function() {
+				$(this).css(swatchUnfocused);
+			});
+			$(this).css(swatchFocused);
+		});
 		// create handlers for changes
 		colorwell.on('change paste keyup', function() {
 			// variables / overrides
@@ -356,5 +372,5 @@ $(document).ready(function() {
 		});
 		colorwell.change(); // run init
 	});
-
+	$('#swatch1').click(); // run init
 });
