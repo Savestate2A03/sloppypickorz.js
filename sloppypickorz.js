@@ -35,6 +35,21 @@ function hexToRGB(hex) {
 	}
 }
 
+function clamp(n, a, b) {
+	return Math.max(a, Math.min(n, b));
+}
+
+function rgbToHex(rgb) {
+	var r, g, b;
+	r = clamp(rgb.r, 0, 255);
+	g = clamp(rgb.g, 0, 255);
+	b = clamp(rgb.b, 0, 255);
+	return '#' 
+		+ ('0' + r.toString(16)).substr(-2)
+		+ ('0' + g.toString(16)).substr(-2)
+		+ ('0' + b.toString(16)).substr(-2);
+}
+
 // thanks to:
 // http://www.niwa.nu/2013/05/math-behind-colorspace-conversions-rgb-hsl/
 function rgbToHSL(rgb) {
@@ -357,6 +372,8 @@ function colorwellProcess(colorwell, debug) {
 	var luma_color = luminance > 100.00 ? '#000' : '#fff';
 	colorwell.css('color', luma_color);
 	colorwell.parent().css('color', luma_color);
+	// set picker
+	pickerSetFromHex($('#picker'), color);
 	// debug 
 	if (!debug) return;
 	var rgb = hexToRGB(color);
@@ -378,22 +395,43 @@ function radToDeg(r) {
   return r*(180/Math.PI);
 }
 
+function pickerSetFromHex(picker, hex) {
+	picker.data('hsl', rgbToHSL(hexToRGB(hex)));
+	pickerUpdate(picker);
+}
+
 function pickerUpdate(picker) {
 	// update markers and color based on picker data
-	var hsl = picker.data('hsl');
-	var base = picker.children('.sloppy-base');
-	var hMarker = base.children('.h-sloppy-marker');
+	var hsl      = picker.data('hsl');
+	var base     = picker.children('.sloppy-base');
+	// -------------
+	var color    = base.children('.sloppy-color');
+	var hMarker  = base.children('.h-sloppy-marker');
 	var slMarker = base.children('.sl-sloppy-marker');
-	var RADIUS = 84;
+	// magic numbers
+	var RADIUS   = 84;
 	var CENTER_X = 97;
 	var CENTER_Y = 97;
+	var CORNER_X = 47;
+	var CORNER_Y = 47;
+	var SL_SIZE  = 100;
+	// -------------
 	var hx = Math.cos(degToRad(hsl.h-90))*RADIUS+CENTER_X;
 	var hy = Math.sin(degToRad(hsl.h-90))*RADIUS+CENTER_Y;
 	hMarker.css({
 		'top' : hy+'px',
 		'left' : hx+'px'
 	});
-
+	var slx = CORNER_X+SL_SIZE-Math.round(hsl.s*SL_SIZE);
+	var sly = CORNER_Y+SL_SIZE-Math.round(hsl.l*SL_SIZE);
+	slMarker.css({
+		'top' : sly+'px',
+		'left' : slx+'px'
+	})
+	var hueColor = rgbToHex(hslToRGB({h: hsl.h, s: 1.0, l: 0.5}));
+	color.css({
+		'background' : hueColor
+	});
 }
 
 function pickerInit(picker) {
@@ -480,9 +518,9 @@ function pickerInit(picker) {
 	}).appendTo(base);
 	// solid red
 	picker.data('hsl', {
-		h: '0',
-		s: '1',
-		l: '0.5'
+		h: '300',
+		s: '0.0',
+		l: '0.0'
 	});
 	pickerUpdate(picker);
 }
@@ -514,6 +552,7 @@ $(document).ready(function() {
 				$(this).css(swatchUnfocused);
 			});
 			$(this).css(swatchFocused);
+			$(this).children('.colorwell').change();
 		});
 		// create handlers for changes
 		colorwell.on('change paste keyup', function() {
