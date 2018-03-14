@@ -288,6 +288,138 @@ function updateSiteColors(type, color) {
 	}	
 }
 
+function colorwellProcess(colorwell, debug) {
+	var color = colorwell.val();
+	// data validation (client-side)
+	if (!color.startsWith('#')) { color = "#" + color; }
+	color = color.replace(/[^a-fA-F0-9\#]/g, '');
+	if (color.length > 7) { color = color.substring(0, 7); }
+	// set colorwell value
+	colorwell.val(color);
+	if (!hexValidator(color)) return; // -------------
+	// only execute the following if valid hex
+	switch(colorwell.attr('id')) {
+		case 'color1':
+			updateSiteColors('text', color);
+			break;
+		case 'color2':
+			updateSiteColors('link', color);
+			break;
+		case 'color3':
+			updateSiteColors('button', color);
+			break;
+		case 'color4':
+			updateSiteColors('box', color);
+			break;
+		case 'color5':
+			updateSiteColors('bottom', color);
+			break;
+		default:
+	}
+	// set editor colors
+	colorwell.css('background-color', color);
+	colorwell.parent().css('background-color', color);
+	// set swatch text based on luminance
+	var rgb = hexToRGB(color);
+	// luminance range is 0-255
+	var luminance = 0.2990*rgb.r + 
+					0.5870*rgb.g +
+					0.1440*rgb.b;
+	var luma_color = luminance > 100.00 ? '#000' : '#fff';
+	colorwell.css('color', luma_color);
+	colorwell.parent().css('color', luma_color);
+	// debug 
+	if (!debug) return;
+	var rgb = hexToRGB(color);
+	var hsl = rgbToHSL(rgb);
+	var rgb2 = hslToRGB(hsl);
+	$('.uiWindow p').html(
+		'COLOR ' + color 
+		+ '<br> :: R ' + rgb.r + ' G ' + rgb.g + ' B ' + rgb.b
+		+ '<br> :: H ' + hsl.h.toFixed(2) + ' S ' + hsl.s.toFixed(2) + ' L ' + hsl.l.toFixed(2)
+		+ '<br> :: (alt) R ' + rgb2.r + ' G ' + rgb2.g + ' B ' + rgb2.b
+	);
+}
+
+function pickerInit(picker) {
+	/* 
+		set up color wheel
+		http://battleofthebits.org/styles/img/wheel.png
+			- base graphic incl wheel and white / alpha bottom
+			- 195x195
+		http://battleofthebits.org/styles/img/mask.png
+			- black / alpha overlay
+			- 101x101
+		http://battleofthebits.org/styles/img/marker.png
+			- marker for color picker
+			- used on wheel and in s/l pane
+			- 17x17
+	*/
+	picker.html('');
+	var base = $('<div/>', {
+		class: 'sloppy-base',
+		css: {
+			'margin' : '0',
+			'padding' : '0',
+			'width' : '195px',
+			'height' : '195px',
+			'position' : 'relative'
+		}
+	}).appendTo(picker);
+	var color = $('<div/>' , {
+		class: 'sloppy-color',
+		css: {
+			'background-color' : '#FF0000',
+			'position' : 'absolute',
+			'width' : '101px',
+			'height' : '101px',
+			'top' : '47px',
+			'left' : '47px'
+		}	
+	}).appendTo(base);
+	var wheel = $('<div/>' , {
+		class: 'sloppy-wheel',
+		css: {
+			'background' : 'url("http://battleofthebits.org/styles/img/wheel.png") no-repeat',
+			'position' : 'absolute',
+			'width' : '195px',
+			'height' : '195px'
+		}
+	}).appendTo(base);
+	var mask = $('<div/>' , {
+		class: 'sloppy-mask',
+		css: {
+			'background' : 'url("http://battleofthebits.org/styles/img/mask.png") no-repeat',
+			'position' : 'absolute',
+			'width' : '101px',
+			'height' : '101px',
+			'top' : '47px',
+			'left' : '47px'
+		}	
+	}).appendTo(base);
+	var hMarker = $('<div/>' , {
+		class: 'sloppy-marker h-sloppy-marker',
+		css: {
+			'background' : 'url("http://battleofthebits.org/styles/img/marker.png") no-repeat',
+			'position' : 'absolute',
+			'width' : '17px',
+			'height' : '17px',
+			'overflow' : 'hidden',
+			'margin' : '-8px 0 0 -8px'
+		}	
+	}).appendTo(base);
+	var slMarker = $('<div/>' , {
+		class: 'sloppy-marker sl-sloppy-marker',
+		css: {
+			'background' : 'url("http://battleofthebits.org/styles/img/marker.png") no-repeat',
+			'position' : 'absolute',
+			'width' : '17px',
+			'height' : '17px',
+			'overflow' : 'hidden',
+			'margin' : '-8px 0 0 -8px'
+		}	
+	}).appendTo(base);
+}
 
 $(document).ready(function() {
 	// remove text shadows (might implement later)
@@ -306,6 +438,7 @@ $(document).ready(function() {
 		'border': '0px',
 		'padding': '5px'
 	};
+	pickerInit($('#picker'));
 	$('.swatch').each(function () {
 		var swatch = $(this);
 		var colorwell = swatch.children('.colorwell');
@@ -318,57 +451,7 @@ $(document).ready(function() {
 		});
 		// create handlers for changes
 		colorwell.on('change paste keyup', function() {
-			// variables / overrides
-			var colorwell = $(this);
-			var color = colorwell.val();
-			// data validation (client-side)
-			if (!color.startsWith('#')) { color = "#" + color; }
-			color = color.replace(/[^a-fA-F0-9\#]/g, '');
-			if (color.length > 7) { color = color.substring(0, 7); }
-			// set colorwell value
-			colorwell.val(color);
-			if (!hexValidator(color)) return; // -------------
-			// only execute the following if valid hex
-			switch(colorwell.attr('id')) {
-				case 'color1':
-					updateSiteColors('text', color);
-					break;
-				case 'color2':
-					updateSiteColors('link', color);
-					break;
-				case 'color3':
-					updateSiteColors('button', color);
-					break;
-				case 'color4':
-					updateSiteColors('box', color);
-					break;
-				case 'color5':
-					updateSiteColors('bottom', color);
-					break;
-				default:
-			}
-			// set editor colors
-			colorwell.css('background-color', color);
-			colorwell.parent().css('background-color', color);
-			// set swatch text based on luminance
-			var rgb = hexToRGB(color);
-			// luminance range is 0-255
-			var luminance = 0.2990*rgb.r + 
-			                0.5870*rgb.g +
-			                0.1440*rgb.b;
-			var luma_color = luminance > 100.00 ? '#000' : '#fff';
-			colorwell.css('color', luma_color);
-			colorwell.parent().css('color', luma_color);
-			// debug 
-			var rgb = hexToRGB(color);
-			var hsl = rgbToHSL(rgb);
-			var rgb2 = hslToRGB(hsl);
-			$('.uiWindow p').html(
-				'COLOR ' + color 
-				+ '<br> :: R ' + rgb.r + ' G ' + rgb.g + ' B ' + rgb.b
-				+ '<br> :: H ' + hsl.h.toFixed(2) + ' S ' + hsl.s.toFixed(2) + ' L ' + hsl.l.toFixed(2)
-				+ '<br> :: (alt) R ' + rgb2.r + ' G ' + rgb2.g + ' B ' + rgb2.b
-			);
+			colorwellProcess($(this), true);
 		});
 		colorwell.change(); // run init
 	});
