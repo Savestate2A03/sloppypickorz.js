@@ -20,9 +20,9 @@ function hexToRGB(hex) {
 	var r, g, b;
 	hex = hex.substring(1, hex.length);
 	if (hex.length == 3) {
-		r = parseInt(hex.charAt(0), 16) * 16;
-		g = parseInt(hex.charAt(1), 16) * 16;
-		b = parseInt(hex.charAt(2), 16) * 16;
+		r = parseInt(hex.charAt(0), 16) * 17;
+		g = parseInt(hex.charAt(1), 16) * 17;
+		b = parseInt(hex.charAt(2), 16) * 17;
 	} else {
 		r = parseInt(hex.substring(0,2), 16);
 		g = parseInt(hex.substring(2,4), 16);
@@ -43,9 +43,38 @@ function rgbToHSL(rgb) {
 	r = rgb.r / 255;
 	g = rgb.g / 255;
 	b = rgb.b / 255;
+	// black
+	if (r == g &&
+		g == b &&
+		b == 0) {
+		return {
+			h: 0,
+			s: 0,
+			l: 0
+		};
+	}
+	// white
+	if (r == g &&
+		g == b &&
+		b == 1) {
+		return {
+			h: 0,
+			s: 0,
+			l: 1.0
+		};
+	}
 	var min = Math.min(r, g, b);
 	var max = Math.max(r, g, b);
 	var luminace = (min+max) / 2;
+	// grey
+	if (r == g &&
+		g == b) {
+		return {
+			h: 0,
+			s: 0,
+			l: luminace
+		};
+	}
 	var saturation = 
 		luminace < 0.5 ? 
 		(max-min)/(max+min) : 
@@ -239,7 +268,7 @@ function updateSiteColors(type, color) {
 			break;
 		// ::::: BOX :::::
 		case 'box':
-			$('.inner').css('background-color', color);
+			$('.inner:not(".topShadow")').css('background-color', color);
 			$('.boxLink').css('background-color', getSwatchColor('button'));
 			$('#USER_STATUS .NoOPEN').css('border', '2px '+color+' solid');
 			$('#StatusBoxBottomRow').css('border-top', color + ' 1px dotted');
@@ -364,6 +393,7 @@ function pickerUpdate(picker) {
 		'top' : hy+'px',
 		'left' : hx+'px'
 	});
+
 }
 
 function pickerInit(picker) {
