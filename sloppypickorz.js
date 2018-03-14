@@ -44,6 +44,8 @@ function rgbToHex(rgb) {
 	r = clamp(rgb.r, 0, 255);
 	g = clamp(rgb.g, 0, 255);
 	b = clamp(rgb.b, 0, 255);
+	// ugly left padding
+	// but i can't think of anything else
 	return '#' 
 		+ ('0' + r.toString(16)).substr(-2)
 		+ ('0' + g.toString(16)).substr(-2)
@@ -403,6 +405,10 @@ function pickerAttach(picker, colorwell) {
 function pickerUpdate(picker) {
 	// don't do anything if unattached
 	if (picker.data('colorwell') == null) return;
+	// hsl calculation
+	var hex = picker.data('colorwell').val();
+	if (!hexValidator(hex)) return; // don't process bad hex but still attach
+	var hsl = rgbToHSL(hexToRGB(hex));
 	// update markers and color based on picker data
 	var base     = picker.children('.sloppy-base');
 	// -------------
@@ -416,9 +422,6 @@ function pickerUpdate(picker) {
 	var CORNER_X = 47;
 	var CORNER_Y = 47;
 	var SL_SIZE  = 100;
-	// hsl calculation
-	var hex = picker.data('colorwell').val();
-	var hsl = rgbToHSL(hexToRGB(hex));
 	// -------------
 	var hx = Math.cos(degToRad(hsl.h-90))*RADIUS+CENTER_X;
 	var hy = Math.sin(degToRad(hsl.h-90))*RADIUS+CENTER_Y;
@@ -494,7 +497,7 @@ function pickerInit(picker) {
 			'left' : '47px'
 		}	
 	}).appendTo(base);
-	$('<div/>' , {
+	var markerH = $('<div/>' , {
 		class: 'sloppy-marker h-sloppy-marker',
 		css: {
 			'background' : 'url("http://battleofthebits.org/styles/img/marker.png") no-repeat',
@@ -507,7 +510,7 @@ function pickerInit(picker) {
 			'left' : '0px'
 		}	
 	}).appendTo(base);
-	$('<div/>' , {
+	var markerSL = $('<div/>' , {
 		class: 'sloppy-marker sl-sloppy-marker',
 		css: {
 			'background' : 'url("http://battleofthebits.org/styles/img/marker.png") no-repeat',
@@ -525,6 +528,36 @@ function pickerInit(picker) {
 		h: '0',
 		s: '1.0',
 		l: '0.5'
+	});
+	markerH.mousedown(function(e) {
+		var marker = $(this);
+		var cx = e.pageX;
+		var cy = e.pageY;
+		var hx = marker.position().left;
+		var hy = marker.position().top;
+		var mouseHueTracker = function(e) {
+			var dx = e.pageX - cx;
+			var dy = e.pageY - cy;
+			var xPos = hx + dx;
+			var yPos = hy + dy;
+			var baseCenterX = marker.parent().width()/2;
+			var baseCenterY = marker.parent().height()/2;
+			var radians = Math.atan2(yPos - baseCenterY, xPos - baseCenterX);
+			var degrees = radToDeg(radians)+90;
+			var colorwell = marker.parent().parent().data('colorwell')
+			var hex = colorwell.val();
+			var hsl = rgbToHSL(hexToRGB(hex));
+			hsl.h = degrees;
+			var newHex = rgbToHex(hslToRGB(hsl));
+			colorwell.val(newHex);
+			colorwell.change();
+		}
+		$('body').css({ 'user-select': 'none'});
+		$('body').mousemove(mouseHueTracker);
+		$('body').mouseup(function() {
+			$('body').css({ 'user-select': 'auto'});
+			$('body').off('mousemove', mouseHueTracker);
+		});
 	});
 	pickerUpdate(picker);
 }
@@ -551,20 +584,20 @@ $(document).ready(function() {
 		var swatch = $(this);
 		var colorwell = swatch.children('.colorwell');
 		// activate swatch on click
-		swatch.on('click', function() {
+		swatch.on('mousedown mouseup', function() {
 			$('.swatch').each(function() {
 				$(this).css(swatchUnfocused);
 			});
 			var colorwell = $(this).children('.colorwell');
 			$(this).css(swatchFocused);
 			pickerAttach($('#picker'), colorwell);
-			colorwell.change();
+			colorwell.keyup();
 		});
 		// create handlers for changes
-		colorwell.on('change paste keyup', function() {
+		colorwell.on('paste keyup change', function() {
 			colorwellProcess($(this), true);
 		});
-		colorwell.change(); // run init
+		colorwell.keyup(); // run init
 	});
-	$('#swatch1').click(); // run init
+	$('#swatch1').mousedown(); // run init
 });
