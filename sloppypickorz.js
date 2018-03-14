@@ -372,8 +372,8 @@ function colorwellProcess(colorwell, debug) {
 	var luma_color = luminance > 100.00 ? '#000' : '#fff';
 	colorwell.css('color', luma_color);
 	colorwell.parent().css('color', luma_color);
-	// set picker
-	pickerSetFromHex($('#picker'), color);
+	// update picker
+	pickerUpdate($('#picker'));
 	// debug 
 	if (!debug) return;
 	var rgb = hexToRGB(color);
@@ -395,14 +395,15 @@ function radToDeg(r) {
   return r*(180/Math.PI);
 }
 
-function pickerSetFromHex(picker, hex) {
-	picker.data('hsl', rgbToHSL(hexToRGB(hex)));
+function pickerAttach(picker, colorwell) {
+	picker.data('colorwell', colorwell);
 	pickerUpdate(picker);
 }
 
 function pickerUpdate(picker) {
+	// don't do anything if unattached
+	if (picker.data('colorwell') == null) return;
 	// update markers and color based on picker data
-	var hsl      = picker.data('hsl');
 	var base     = picker.children('.sloppy-base');
 	// -------------
 	var color    = base.children('.sloppy-color');
@@ -415,6 +416,9 @@ function pickerUpdate(picker) {
 	var CORNER_X = 47;
 	var CORNER_Y = 47;
 	var SL_SIZE  = 100;
+	// hsl calculation
+	var hex = picker.data('colorwell').val();
+	var hsl = rgbToHSL(hexToRGB(hex));
 	// -------------
 	var hx = Math.cos(degToRad(hsl.h-90))*RADIUS+CENTER_X;
 	var hy = Math.sin(degToRad(hsl.h-90))*RADIUS+CENTER_Y;
@@ -518,9 +522,9 @@ function pickerInit(picker) {
 	}).appendTo(base);
 	// solid red
 	picker.data('hsl', {
-		h: '300',
-		s: '0.0',
-		l: '0.0'
+		h: '0',
+		s: '1.0',
+		l: '0.5'
 	});
 	pickerUpdate(picker);
 }
@@ -542,7 +546,7 @@ $(document).ready(function() {
 		'border': '0px',
 		'padding': '5px'
 	};
-	pickerInit($('#picker'));
+	pickerInit($('#picker')); // init picker
 	$('.swatch').each(function () {
 		var swatch = $(this);
 		var colorwell = swatch.children('.colorwell');
@@ -551,8 +555,10 @@ $(document).ready(function() {
 			$('.swatch').each(function() {
 				$(this).css(swatchUnfocused);
 			});
+			var colorwell = $(this).children('.colorwell');
 			$(this).css(swatchFocused);
-			$(this).children('.colorwell').change();
+			pickerAttach($('#picker'), colorwell);
+			colorwell.change();
 		});
 		// create handlers for changes
 		colorwell.on('change paste keyup', function() {
