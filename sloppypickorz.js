@@ -341,6 +341,31 @@ function colorwellProcess(colorwell, debug) {
 	);
 }
 
+function degToRad(d) {
+	return d*(Math.PI/180);
+}
+
+function radToDeg(r) {
+  return r*(180/Math.PI);
+}
+
+function pickerUpdate(picker) {
+	// update markers and color based on picker data
+	var hsl = picker.data('hsl');
+	var base = picker.children('.sloppy-base');
+	var hMarker = base.children('.h-sloppy-marker');
+	var slMarker = base.children('.sl-sloppy-marker');
+	var RADIUS = 84;
+	var CENTER_X = 97;
+	var CENTER_Y = 97;
+	var hx = Math.cos(degToRad(hsl.h-90))*RADIUS+CENTER_X;
+	var hy = Math.sin(degToRad(hsl.h-90))*RADIUS+CENTER_Y;
+	hMarker.css({
+		'top' : hy+'px',
+		'left' : hx+'px'
+	});
+}
+
 function pickerInit(picker) {
 	/* 
 		set up color wheel
@@ -366,7 +391,7 @@ function pickerInit(picker) {
 			'position' : 'relative'
 		}
 	}).appendTo(picker);
-	var color = $('<div/>' , {
+	$('<div/>' , {
 		class: 'sloppy-color',
 		css: {
 			'background-color' : '#FF0000',
@@ -377,7 +402,7 @@ function pickerInit(picker) {
 			'left' : '47px'
 		}	
 	}).appendTo(base);
-	var wheel = $('<div/>' , {
+	$('<div/>' , {
 		class: 'sloppy-wheel',
 		css: {
 			'background' : 'url("http://battleofthebits.org/styles/img/wheel.png") no-repeat',
@@ -386,7 +411,7 @@ function pickerInit(picker) {
 			'height' : '195px'
 		}
 	}).appendTo(base);
-	var mask = $('<div/>' , {
+	$('<div/>' , {
 		class: 'sloppy-mask',
 		css: {
 			'background' : 'url("http://battleofthebits.org/styles/img/mask.png") no-repeat',
@@ -397,7 +422,7 @@ function pickerInit(picker) {
 			'left' : '47px'
 		}	
 	}).appendTo(base);
-	var hMarker = $('<div/>' , {
+	$('<div/>' , {
 		class: 'sloppy-marker h-sloppy-marker',
 		css: {
 			'background' : 'url("http://battleofthebits.org/styles/img/marker.png") no-repeat',
@@ -405,10 +430,12 @@ function pickerInit(picker) {
 			'width' : '17px',
 			'height' : '17px',
 			'overflow' : 'hidden',
-			'margin' : '-8px 0 0 -8px'
+			'margin' : '-8px 0 0 -8px',
+			'top' : '0px',
+			'left' : '0px'
 		}	
 	}).appendTo(base);
-	var slMarker = $('<div/>' , {
+	$('<div/>' , {
 		class: 'sloppy-marker sl-sloppy-marker',
 		css: {
 			'background' : 'url("http://battleofthebits.org/styles/img/marker.png") no-repeat',
@@ -416,9 +443,18 @@ function pickerInit(picker) {
 			'width' : '17px',
 			'height' : '17px',
 			'overflow' : 'hidden',
-			'margin' : '-8px 0 0 -8px'
+			'margin' : '-8px 0 0 -8px',
+			'top' : '0px',
+			'left' : '0px'
 		}	
 	}).appendTo(base);
+	// solid red
+	picker.data('hsl', {
+		h: '0',
+		s: '1',
+		l: '0.5'
+	});
+	pickerUpdate(picker);
 }
 
 $(document).ready(function() {
