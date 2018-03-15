@@ -292,6 +292,8 @@ function updateSiteColors(type, color) {
 			$('.logo0').css('color', color);
 			$('.uiWindow').css('background-color', color);
 			$('#footer').css('background', color + ' url(/styles/img/marble_bg.png)');
+			var rgb = hexToRGB(color);
+			$('#pageBG').css('background', 'rgba('+rgb.r+','+rgb.g+','+rgb.b+',0.8)');
 			break;
 		// ::::: BOTTOM :::::
 		case 'bottom':
@@ -468,7 +470,8 @@ function pickerInit(picker) {
 			'padding' : '0',
 			'width' : '195px',
 			'height' : '195px',
-			'position' : 'relative'
+			'position' : 'relative',
+			'cursor' : 'crosshair'
 		}
 	}).appendTo(picker);
 	$('<div/>' , {
@@ -485,7 +488,7 @@ function pickerInit(picker) {
 	var wheel = $('<div/>' , {
 		class: 'sloppy-wheel',
 		css: {
-			'background' : 'url("http://battleofthebits.org/styles/img/wheel.png") no-repeat',
+			'background' : 'url("styles/img/wheel.png") no-repeat',
 			'position' : 'absolute',
 			'width' : '195px',
 			'height' : '195px'
@@ -494,7 +497,7 @@ function pickerInit(picker) {
 	var mask = $('<div/>' , {
 		class: 'sloppy-mask',
 		css: {
-			'background' : 'url("http://battleofthebits.org/styles/img/mask.png") no-repeat',
+			'background' : 'url("styles/img/mask.png") no-repeat',
 			'position' : 'absolute',
 			'width' : '101px',
 			'height' : '101px',
@@ -505,7 +508,7 @@ function pickerInit(picker) {
 	var markerH = $('<div/>' , {
 		class: 'sloppy-marker h-sloppy-marker',
 		css: {
-			'background' : 'url("http://battleofthebits.org/styles/img/marker.png") no-repeat',
+			'background' : 'url("styles/img/marker.png") no-repeat',
 			'position' : 'absolute',
 			'width' : '17px',
 			'height' : '17px',
@@ -518,7 +521,7 @@ function pickerInit(picker) {
 	var markerSL = $('<div/>' , {
 		class: 'sloppy-marker sl-sloppy-marker',
 		css: {
-			'background' : 'url("http://battleofthebits.org/styles/img/marker.png") no-repeat',
+			'background' : 'url("styles/img/marker.png") no-repeat',
 			'position' : 'absolute',
 			'width' : '17px',
 			'height' : '17px',
@@ -553,6 +556,7 @@ function pickerInit(picker) {
 			pickerUpdate(picker, true);
 		}
 		$('body').css({ 'user-select': 'none'});
+		mouseHueTracker(e); // run once on click
 		$('body').mousemove(mouseHueTracker);
 		$('body').mouseup(function() {
 			$('body').css({ 'user-select': 'auto'});
@@ -582,6 +586,7 @@ function pickerInit(picker) {
 			pickerUpdate(picker, true);
 		}
 		$('body').css({ 'user-select': 'none'});
+		mouseSLTracker(e); // run once on click
 		$('body').mousemove(mouseSLTracker);
 		$('body').mouseup(function() {
 			$('body').css({ 'user-select': 'auto'});
@@ -590,7 +595,63 @@ function pickerInit(picker) {
 	});
 }
 
+/* 
+	--- ajax info ---
+	[NEW PALETTE]
+		url: http://battleofthebits.org/palette/AjaxNew/
+		response:
+			EPICWINZ([0-9]*)
+			Earn more boons, n00b! :D/
+	[SAVE PALETTE]
+		url: http:/battleofthebits.org/palette/AjaxSave/####/
+		form: 
+			paletteID: ####
+			title: text
+			color1: #RRGGBB
+			color2: #RRGGBB
+			color3: #RRGGBB
+			color4: #RRGGBB
+			color5: #RRGGBB
+		response: 
+			EPICWINZ
+			EPIC SERVER FAIL =O
+			Not your palette, n00b! :0
+	[SET AS PALETTE]
+		url: http://battleofthebits.org/palette/AjaxSet/####/
+		response:
+			EPICWINZ
+			EPIC SERVER FAIL =O
+	-----------------
+*/
+
+var activePaletteID;
+
+function loadPalette() {
+	var palette = $(this);
+	var colors = palette.children('.swatchBBlock, .swatchBlock');
+	$('.swatch').each(function(index) {
+		var swatch = $(this);
+		var colorwell = swatch.children('.colorwell');
+		// ugh, rgb(10, 71, 0)
+		var rgbValue = colors.eq(index).css('background-color');
+		if (!/\#[0-9a-fA-F]{3,6}/g.test()) {
+			var regex = /rgb\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*\)/g;
+			var match = regex.exec(rgbValue);
+			rgbValue = rgbToHex({
+				r: match[1],
+				g: match[2],
+				b: match[3]
+			});
+		}
+		colorwell.val(rgbValue);
+		colorwell.keyup();
+	});
+	pickerUpdate($('#picker'), false);
+}
+
 $(document).ready(function() {
+	activePaletteID = $('#paletteID').text();
+
 	// remove text shadows (might implement later)
 	$('head').children('style:contains("#pageWrap{text-shadow")').remove();
 	$('#pageWrap').css('text-shadow', '');
@@ -624,8 +685,26 @@ $(document).ready(function() {
 		// create handlers for changes
 		colorwell.on('paste keyup change', function() {
 			colorwellProcess($(this), true);
+			pickerUpdate($('#picker'), false);
 		});
 		colorwell.keyup(); // run init
 	});
 	$('#swatch1').mousedown(); // run init
+
+	// new cool functionality
+	var availPalettes = $('a[href*="battleofthebits.org/barracks/PaletteEditor/"]');
+	availPalettes.each(function() {
+		urlArray = $(this).attr('href').split('/');
+		for(var i=0; i<urlArray.length; i++) {
+			if (urlArray[i].trim().length === 0) {
+				urlArray.splice(i, 1);
+				i--;
+			}
+		}
+		var paletteID = urlArray[urlArray.length-1];
+		$(this).data('paletteID', paletteID);
+		$(this).click(loadPalette);
+		$(this).removeAttr('href');
+
+	});
 });
