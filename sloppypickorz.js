@@ -374,8 +374,6 @@ function colorwellProcess(colorwell, debug) {
 	var luma_color = luminance > 100.00 ? '#000' : '#fff';
 	colorwell.css('color', luma_color);
 	colorwell.parent().css('color', luma_color);
-	// update picker
-	pickerUpdate($('#picker'));
 	// debug 
 	if (!debug) return;
 	var rgb = hexToRGB(color);
@@ -397,18 +395,20 @@ function radToDeg(r) {
   return r*(180/Math.PI);
 }
 
-function pickerAttach(picker, colorwell) {
-	picker.data('colorwell', colorwell);
-	pickerUpdate(picker);
-}
-
-function pickerUpdate(picker) {
-	// don't do anything if unattached
-	if (picker.data('colorwell') == null) return;
-	// hsl calculation
-	var hex = picker.data('colorwell').val();
-	if (!hexValidator(hex)) return; // don't process bad hex but still attach
-	var hsl = rgbToHSL(hexToRGB(hex));
+function pickerUpdate(picker, useInternal) {
+	var hsl;
+	if (useInternal) {
+		if (picker.data('hsl') == null) return;
+		hsl = picker.data('hsl');
+	} else {
+		// don't do anything if unattached
+		if (picker.data('colorwell') == null) return;
+		// hsl calculation
+		var hex = picker.data('colorwell').val();
+		if (!hexValidator(hex)) return; // don't process bad hex but still attach
+		hsl = rgbToHSL(hexToRGB(hex));
+		picker.data('hsl', hsl);
+	}
 	// update markers and color based on picker data
 	var base     = picker.children('.sloppy-base');
 	// -------------
@@ -439,6 +439,11 @@ function pickerUpdate(picker) {
 	color.css({
 		'background' : hueColor
 	});
+}
+
+function pickerAttach(picker, colorwell) {
+	picker.data('colorwell', colorwell);
+	pickerUpdate(picker, false);
 }
 
 function pickerInit(picker) {
@@ -477,7 +482,7 @@ function pickerInit(picker) {
 			'left' : '47px'
 		}	
 	}).appendTo(base);
-	$('<div/>' , {
+	var wheel = $('<div/>' , {
 		class: 'sloppy-wheel',
 		css: {
 			'background' : 'url("http://battleofthebits.org/styles/img/wheel.png") no-repeat',
@@ -486,7 +491,7 @@ function pickerInit(picker) {
 			'height' : '195px'
 		}
 	}).appendTo(base);
-	$('<div/>' , {
+	var mask = $('<div/>' , {
 		class: 'sloppy-mask',
 		css: {
 			'background' : 'url("http://battleofthebits.org/styles/img/mask.png") no-repeat',
@@ -529,28 +534,23 @@ function pickerInit(picker) {
 		s: '1.0',
 		l: '0.5'
 	});
-	markerH.mousedown(function(e) {
+	markerH.add(wheel).mousedown(function(e) {
 		var marker = $(this);
-		var cx = e.pageX;
-		var cy = e.pageY;
-		var hx = marker.position().left;
-		var hy = marker.position().top;
 		var mouseHueTracker = function(e) {
-			var dx = e.pageX - cx;
-			var dy = e.pageY - cy;
-			var xPos = hx + dx;
-			var yPos = hy + dy;
+			var xPos = e.pageX - base.offset().left;
+			var yPos = e.pageY - base.offset().top;
 			var baseCenterX = marker.parent().width()/2;
 			var baseCenterY = marker.parent().height()/2;
 			var radians = Math.atan2(yPos - baseCenterY, xPos - baseCenterX);
 			var degrees = radToDeg(radians)+90;
-			var colorwell = marker.parent().parent().data('colorwell')
-			var hex = colorwell.val();
-			var hsl = rgbToHSL(hexToRGB(hex));
+			var colorwell = marker.parent().parent().data('colorwell');
+			var hsl = picker.data('hsl');
 			hsl.h = degrees;
 			var newHex = rgbToHex(hslToRGB(hsl));
 			colorwell.val(newHex);
 			colorwell.change();
+			picker.data('hsl', hsl);
+			pickerUpdate(picker, true);
 		}
 		$('body').css({ 'user-select': 'none'});
 		$('body').mousemove(mouseHueTracker);
@@ -559,7 +559,35 @@ function pickerInit(picker) {
 			$('body').off('mousemove', mouseHueTracker);
 		});
 	});
-	pickerUpdate(picker);
+	markerSL.add(mask).mousedown(function(e) {
+		var marker = markerSL;
+		var mouseSLTracker = function(e) {
+			var colorSquare = marker.parent().children('.sloppy-color');
+			var xPos = e.pageX - base.offset().left;
+			var yPos = e.pageY - base.offset().top;
+			var colorStartX = colorSquare.position().left;
+			var colorStartY = colorSquare.position().top;
+			var colorSizeX = colorSquare.width();
+			var colorSizeY = colorSquare.height();
+			var saturation = clamp(1-(xPos-colorStartX)/colorSizeX,0,1);
+			var luminance = clamp(1-(yPos-colorStartY)/colorSizeY,0,1);
+			var colorwell = marker.parent().parent().data('colorwell');
+			var hsl = picker.data('hsl');
+			hsl.s = saturation;
+			hsl.l = luminance;
+			var newHex = rgbToHex(hslToRGB(hsl));
+			colorwell.val(newHex);
+			colorwell.change();
+			picker.data('hsl', hsl);
+			pickerUpdate(picker, true);
+		}
+		$('body').css({ 'user-select': 'none'});
+		$('body').mousemove(mouseSLTracker);
+		$('body').mouseup(function() {
+			$('body').css({ 'user-select': 'auto'});
+			$('body').off('mousemove', mouseSLTracker);
+		});
+	});
 }
 
 $(document).ready(function() {
