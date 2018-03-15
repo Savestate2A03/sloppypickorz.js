@@ -678,6 +678,10 @@ function extractSwatchBlockColor(swatchBlock) {
 	return rgbValue;
 }
 
+function getBotBPicker() {
+	return $('#picker');
+}
+
 function getPalettePanel() {
 	return $('#botbrPaletts');
 }
@@ -690,6 +694,16 @@ function getPaletteColors(palette) {
 	return colors;
 }
 
+function getSwatchColors() {
+	var colors = [];
+	$('.swatch').each(function(index) {
+		var swatch = $(this);
+		var colorwell = swatch.children('.colorwell');
+		colors.push(colorwell.val());
+	});
+	return colors;
+}
+
 function getPaletteTitle(palette) {
 	if (checkIfUserPaletteDirect(palette))
 		return palette.children('.titty').text();
@@ -698,6 +712,15 @@ function getPaletteTitle(palette) {
 
 function activePaletteTitle() {
 	return $('input[name="title"]');
+}
+
+function setColorwells(colors) {
+	$('.swatch').find('.colorwell').each(function(index) {
+		var colorwell = $(this);
+		colorwell.val(colors[index]);
+		colorwellProcess(colorwell);
+	});
+	pickerUpdate(getBotBPicker(), false);
 }
 
 function createHiddenPalette(paletteID) {
@@ -742,7 +765,7 @@ function loadPalette(palette) {
 		$('#sloppy-palinfo-title').text(getPaletteTitle(palette));
 		$('#paletteTitle').css('display', 'none');
 	}
-	pickerUpdate($('#picker'), false);
+	pickerUpdate(getBotBPicker(), false);
 }
 
 function loadPaletteID(paletteID) {
@@ -854,25 +877,35 @@ function sloppyPickorzHTMLSetup() {
 		}
 	);
 
+	$('#CPRevert').click(function(e) {
+		e.preventDefault();
+		var palette = getPalette(activePaletteID);
+		var original = palette.data('original');
+		var title = original.title;
+		var colors = original.colors;
+		activePaletteTitle().val(title);
+		activePaletteTitle().change();
+		setColorwells(colors);
+		palette.data('saved', true);
+		updateUserPalettePane();
+	});
+
 	$('#CPDuplicate').click(function(e){
 		e.preventDefault();
 		var palette = getPalette(activePaletteID);
 		var title = getPaletteTitle(palette);
-		var colors = getPaletteColors(palette);
+		var colors = getSwatchColors();
 		msgSpan.text('duplicating palette...');
 		if (!$('#CPpalette_new').click()) {
 			msgSpan.text('BORKED! D: no new palette!!!!').show();
 			return false;
 		}
-		$('.swatch').find('.colorwell').each(function(index) {
-			var colorwell = $(this);
-			colorwell.val(colors[index]);
-			colorwellProcess(colorwell);
-		});
-		pickerUpdate($('#picker'), false);
+		setColorwells(colors);
+		pickerUpdate(getBotBPicker(), false);
 		var palette = getPalette(activePaletteID);
 		palette.children('.titty').text(title);
 		activePaletteTitle().val(title);
+		palette.data('saved', true);
 		palette.data('original', {
 			title: title,
 			colors: colors
@@ -888,6 +921,7 @@ function sloppyPickorzHTMLSetup() {
 		e.preventDefault();
 		msgSpan.text('creating new palette...');
 		var paletteID = $('#paletteID').text();
+		// ----- DEBUG -----
 		if (SLOPPY_DEBUG) {
 			msgSpan.text('Thanks for the boons, n00b!').show();
 			var newPaletteID = SLOPPY_DEBUG_PAL;
@@ -900,6 +934,7 @@ function sloppyPickorzHTMLSetup() {
 			palette.hide().fadeIn(500);
 			return true;
 		}
+		// ----- END DEBUG -----
 		$.get('/palette/AjaxNew/', '', function(data) {
 			successRegex = /EPICWINZ([0-9]+)/g;
 			if (successRegex.test(data)) {
@@ -929,12 +964,18 @@ function sloppyPickorzHTMLSetup() {
 			'paletteID': activePaletteID,
 			'title': activePaletteTitle().val()		
 		};
+		// ----- DEBUG -----
 		if (SLOPPY_DEBUG) {
 			msgSpan.text('Your changes have been saved.').show();
 			palette.data('saved', true);
+			palette.data('original', {
+				title: activePaletteTitle().val(),
+				colors: colors
+			});
 			updateUserPalettePane();
 			return true;
 		}
+		// ----- END DEBUG -----
 		$.post('/palette/AjaxSave/'+activePaletteID+'/', ajaxObject, function(data)  {
 			if (data === 'EPICWINZ') {
 				msgSpan.text('Your changes have been saved.').show();
@@ -1007,12 +1048,12 @@ function swatchInitProcessing() {
 		});
 		var colorwell = $(this).children('.colorwell');
 		swatch.css(swatchFocused);
-		pickerAttach($('#picker'), colorwell);
+		pickerAttach(getBotBPicker(), colorwell);
 	});
 	// create handlers for changes
 	colorwell.on('paste keyup change', function() {
 		colorwellProcess($(this));
-		pickerUpdate($('#picker'), false);
+		pickerUpdate(getBotBPicker(), false);
 		// mark palette as unsaved
 		if (checkIfUserPalette(activePaletteID)) {
 			var palette = getUserPalette(activePaletteID);
@@ -1055,7 +1096,7 @@ $(document).ready(function() {
 	$('#pageWrap').css('text-shadow', '');
 	$('a').css('text-shadow', '');
 
-	pickerInit($('#picker')); // init picker
+	pickerInit(getBotBPicker()); // init picker
 	$('.swatch').each(swatchInitProcessing);
 	$('#swatch1').mousedown(); // select 1st swatch
 
