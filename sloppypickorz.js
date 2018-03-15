@@ -618,7 +618,7 @@ function getRecentPalette(paletteID) {
 
 function getUserPalette(paletteID) {
 	var returnPalette = null;
-	$(BOTB_PALETTES_PANEL_ID).children('[id^="pal"]').each(function() {
+	getPalettePanel().children('[id^="pal"]').each(function() {
 		var palette = $(this);
 		if (palette.data('paletteID') === paletteID)
 			returnPalette = palette;
@@ -634,7 +634,7 @@ function getPalette(paletteID){
 }
 
 function updateUserPalettePane() {
-	$(BOTB_PALETTES_PANEL_ID).children('[id^="pal"]').each(function() {
+	getPalettePanel().children('[id^="pal"]').each(function() {
 		var palette = $(this);
 		palette.find('.sloppy-current').css('display', 
 			(palette.data('paletteID') == activePaletteID) ? 
@@ -647,7 +647,7 @@ function updateUserPalettePane() {
 
 function checkIfUserPalette(paletteID) {
 	var returnCheck = false;
-	$(BOTB_PALETTES_PANEL_ID).children('[id^="pal"]').each(function() {
+	getPalettePanel().children('[id^="pal"]').each(function() {
 		var palette = $(this);
 		if (palette.data('paletteID') === paletteID)
 			returnCheck = true;
@@ -676,6 +676,10 @@ function extractSwatchBlockColor(swatchBlock) {
 		}
 	}
 	return rgbValue;
+}
+
+function getPalettePanel() {
+	return $('#botbrPaletts');
 }
 
 function getPaletteColors(palette) {
@@ -744,7 +748,7 @@ function loadPalette(palette) {
 function loadPaletteID(paletteID) {
 	// search botbr's palettes 1st
 	var found = false;
-	$(BOTB_PALETTES_PANEL_ID).children('[id^="pal"]').each(function() {
+	getPalettePanel().children('[id^="pal"]').each(function() {
 		var palette = $(this);
 		if (palette.data('paletteID') == paletteID) {
 			loadPalette(palette);
@@ -865,6 +869,7 @@ function sloppyPickorzHTMLSetup() {
 			colorwell.val(colors[index]);
 			colorwellProcess(colorwell);
 		});
+		pickerUpdate($('#picker'), false);
 		var palette = getPalette(activePaletteID);
 		palette.children('.titty').text(title);
 		activePaletteTitle().val(title);
@@ -888,7 +893,7 @@ function sloppyPickorzHTMLSetup() {
 			var newPaletteID = SLOPPY_DEBUG_PAL;
 			SLOPPY_DEBUG_PAL++;
 			var newPaletteHTML = defaultPaletteCreatorHTML(newPaletteID);
-			$(BOTB_PALETTES_PANEL_ID).prepend(newPaletteHTML);
+			getPalettePanel().prepend(newPaletteHTML);
 			var palette = $('.sloppy-newgen');
 			setupPaletteForSloppy(palette, newPaletteID);
 			loadPaletteID(newPaletteID);
@@ -902,7 +907,7 @@ function sloppyPickorzHTMLSetup() {
 				var match = successRegex.exec(data);
 				var newPaletteID = match[1];
 				var newPaletteHTML = defaultPaletteCreatorHTML(newPaletteID);
-				$(BOTB_PALETTES_PANEL_ID).prepend(newPaletteHTML);
+				getPalettePanel().prepend(newPaletteHTML);
 				var palette = $('.sloppy-newgen');
 				setupPaletteForSloppy(palette, newPaletteID);
 				loadPaletteID(newPaletteID);
@@ -948,7 +953,8 @@ function sloppyPickorzHTMLSetup() {
 function setupPaletteForSloppy(palette, paletteID) {
 	palette.removeClass('sloppy-newgen');
 	palette.data('paletteID', paletteID);
-	palette.click(function() {
+	palette.click(function(e) {
+		e.preventDefault();
 		loadPaletteID(paletteID);
 	});
 	if (checkIfUserPaletteDirect(palette)) {
@@ -966,7 +972,6 @@ function setupPaletteForSloppy(palette, paletteID) {
 		title: title,
 		colors: colors
 	})
-	palette.removeAttr('href');
 }
 
 function paletteInitProcessing() {
@@ -1034,7 +1039,6 @@ var activePaletteID; // current working-space palette
 
 var SLOPPY_DEBUG_PAL = 9999;
 var SLOPPY_DEBUG = true;
-var BOTB_PALETTES_PANEL_ID = '#botbrPaletts';
 
 $(document).ready(function() {
 	activePaletteID = $('#paletteID').text();
