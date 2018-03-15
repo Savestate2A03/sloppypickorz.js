@@ -727,17 +727,35 @@ function sloppyPickorzHTMLSetup() {
 	
 }
 
-$(document).ready(function() {
-	activePaletteID = $('#paletteID').text();
+function paletteInitProcessing() {
+	var palette = $(this);
+	urlArray = $(this).attr('href').split('/');
+	for(var i=0; i<urlArray.length; i++) {
+		if (urlArray[i].trim().length === 0) {
+			urlArray.splice(i, 1);
+			i--;
+		}
+	}
+	var paletteID = urlArray[urlArray.length-1];
+	palette.data('paletteID', paletteID);
+	palette.click(function() {
+		loadPaletteID(paletteID);
+	});
+	if (palette.parent().attr('id') === 'botbrPaletts') {
+		// the botbrs own palettes
+		palette.prepend(
+			'<div class="botb-icon icons-pencil sloppy-current" style="display:none"></div>'
+			+ '<span class="tb0 sloppy-unsaved" style="display:none">unsaved!<br></span>'
+		);
+		palette.data('editInfo', {
+			current: false,
+			saved: true
+		})
+	}
+	palette.removeAttr('href');
+}
 
-	// remove text shadows (might implement later)
-	$('head').children('style:contains("#pageWrap{text-shadow")').remove();
-	$('#pageWrap').css('text-shadow', '');
-	$('a').css('text-shadow', '');
-	/* 
-	   set the backgrounds of the text inputs &
-	   create callbacks that properly set the values 
-	*/
+function swatchInitProcessing() {
 	var swatchFocused = {
 		'border': '2px solid', 
 		'padding': '3px' 
@@ -746,48 +764,45 @@ $(document).ready(function() {
 		'border': '0px',
 		'padding': '5px'
 	};
-	pickerInit($('#picker')); // init picker
-	$('.swatch').each(function () {
-		var swatch = $(this);
-		var colorwell = swatch.children('.colorwell');
-		// activate swatch on click
-		swatch.on('mousedown', function() {
-			$('.swatch').each(function() {
-				$(this).css(swatchUnfocused);
-			});
-			var colorwell = $(this).children('.colorwell');
-			$(this).css(swatchFocused);
-			pickerAttach($('#picker'), colorwell);
-			colorwell.keyup();
-		});
-		// create handlers for changes
-		colorwell.on('paste keyup change', function() {
-			colorwellProcess($(this), true);
-			pickerUpdate($('#picker'), false);
-		});
-		colorwell.keyup(); // run init
-	});
-	$('#swatch1').mousedown(); // run init
 
-	// new cool functionality
-	var availPalettes = $('a[href*="/barracks/PaletteEditor/"]');
-	availPalettes.each(function() {
-		urlArray = $(this).attr('href').split('/');
-		for(var i=0; i<urlArray.length; i++) {
-			if (urlArray[i].trim().length === 0) {
-				urlArray.splice(i, 1);
-				i--;
-			}
-		}
-		var paletteID = urlArray[urlArray.length-1];
-		$(this).data('paletteID', paletteID);
-		$(this).click(function() {
-			loadPaletteID(paletteID);
+	var swatch = $(this);
+	var colorwell = swatch.children('.colorwell');
+	// activate swatch on click
+	swatch.on('mousedown', function() {
+		$('.swatch').each(function() {
+			$(this).css(swatchUnfocused);
 		});
-		$(this).removeAttr('href');
+		var colorwell = $(this).children('.colorwell');
+		$(this).css(swatchFocused);
+		pickerAttach($('#picker'), colorwell);
+		colorwell.keyup();
 	});
+	// create handlers for changes
+	colorwell.on('paste keyup change', function() {
+		colorwellProcess($(this), true);
+		pickerUpdate($('#picker'), false);
+	});
+	colorwell.keyup(); // run init
+}
+
+$(document).ready(function() {
+	activePaletteID = $('#paletteID').text();
+
+	// remove text shadows (might implement later)
+	$('head').children('style:contains("#pageWrap{text-shadow")').remove();
+	$('#pageWrap').css('text-shadow', '');
+	$('a').css('text-shadow', '');
+
+	pickerInit($('#picker')); // init picker
+	$('.swatch').each(swatchInitProcessing);
+	$('#swatch1').mousedown(); // select 1st swatch
+
+	// new cool palette editing functionality
+	var availPalettes = $('a[href*="/barracks/PaletteEditor/"]');
+	availPalettes.each(paletteInitProcessing);
 
 	// set up new containers
 	sloppyPickorzHTMLSetup();
+
 	loadPaletteID(activePaletteID);
 });
