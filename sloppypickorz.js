@@ -338,7 +338,7 @@ function updateSiteColors(type, color) {
 	}	
 }
 
-function colorwellProcess(colorwell, debug) {
+function colorwellProcess(colorwell) {
 	var color = colorwell.val();
 	// data validation (client-side)
 	if (!color.startsWith('#')) { color = "#" + color; }
@@ -386,7 +386,7 @@ function colorwellProcess(colorwell, debug) {
 	colorwell.css('color', luma_color);
 	colorwell.parent().css('color', luma_color);
 	// debug 
-	if (!debug) return;
+	if (!SLOPPY_DEBUG) return;
 	var rgb = hexToRGB(color);
 	var hsl = rgbToHSL(rgb);
 	var rgb2 = hslToRGB(hsl);
@@ -604,35 +604,6 @@ function pickerInit(picker) {
 	});
 }
 
-/* 
-	--- ajax info ---
-	[NEW PALETTE]
-		url: http://battleofthebits.org/palette/AjaxNew/
-		response:
-			EPICWINZ([0-9]*)
-			Earn more boons, n00b! :D/
-	[SAVE PALETTE]
-		url: http:/battleofthebits.org/palette/AjaxSave/####/
-		form: 
-			paletteID: ####
-			title: text
-			color1: #RRGGBB
-			color2: #RRGGBB
-			color3: #RRGGBB
-			color4: #RRGGBB
-			color5: #RRGGBB
-		response: 
-			EPICWINZ
-			EPIC SERVER FAIL =O
-			Not your palette, n00b! :0
-	[SET AS PALETTE]
-		url: http://battleofthebits.org/palette/AjaxSet/####/
-		response:
-			EPICWINZ
-			EPIC SERVER FAIL =O
-	-----------------
-*/
-
 function getRecentPalette(paletteID) {
 	var returnPalette = null;
 	$('.inner.clearfix:contains("Recent Palettes")').children('.inner.boxLink.tb1').each(function() {
@@ -647,7 +618,7 @@ function getRecentPalette(paletteID) {
 
 function getUserPalette(paletteID) {
 	var returnPalette = null;
-	$('#botbrPaletts').children('[id^="pal"]').each(function() {
+	$(BOTB_PALETTES_PANEL_ID).children('[id^="pal"]').each(function() {
 		var palette = $(this);
 		if (palette.data('paletteID') === paletteID)
 			returnPalette = palette;
@@ -663,7 +634,7 @@ function getPalette(paletteID){
 }
 
 function updateUserPalettePane() {
-	$('#botbrPaletts').children('[id^="pal"]').each(function() {
+	$(BOTB_PALETTES_PANEL_ID).children('[id^="pal"]').each(function() {
 		var palette = $(this);
 		palette.find('.sloppy-current').css('display', 
 			(palette.data('paletteID') == activePaletteID) ? 
@@ -676,7 +647,7 @@ function updateUserPalettePane() {
 
 function checkIfUserPalette(paletteID) {
 	var returnCheck = false;
-	$('#botbrPaletts').children('[id^="pal"]').each(function() {
+	$(BOTB_PALETTES_PANEL_ID).children('[id^="pal"]').each(function() {
 		var palette = $(this);
 		if (palette.data('paletteID') === paletteID)
 			returnCheck = true;
@@ -721,6 +692,10 @@ function getPaletteTitle(palette) {
 	return palette.find('.hMiniSeperator').next().text();
 }
 
+function activePaletteTitle() {
+	return $('input[name="title"]');
+}
+
 function createHiddenPalette(paletteID) {
 	$('.inner.clearfix:contains("Recent Palettes")').append(
 		'<a id="sloppy-unknown-palette" class="inner boxLink tb1" style="display:none"></a>'
@@ -736,7 +711,7 @@ function loadPalette(palette) {
 		$('#CPsave').css('display', 'none');
 		$('#sloppy-palinfo').css('display', 'inline');
 		$('#sloppy-palinfo-creator').text("unknown !! O:");
-		$('#sloppy-palinfo-title').text($('input[name="title"]').val());
+		$('#sloppy-palinfo-title').text(activePaletteTitle().val());
 		$('#paletteTitle').css('display', 'none');	
 		return;
 	}
@@ -746,7 +721,7 @@ function loadPalette(palette) {
 		var colorwell = swatch.children('.colorwell');
 		var rgbValue = extractSwatchBlockColor(colors.eq(index));
 		colorwell.val(rgbValue);
-		colorwellProcess(colorwell, true);
+		colorwellProcess(colorwell);
 	});
 	if (checkIfUserPaletteDirect(palette)) {
 		// user's own palette
@@ -769,7 +744,7 @@ function loadPalette(palette) {
 function loadPaletteID(paletteID) {
 	// search botbr's palettes 1st
 	var found = false;
-	$('#botbrPaletts').children('[id^="pal"]').each(function() {
+	$(BOTB_PALETTES_PANEL_ID).children('[id^="pal"]').each(function() {
 		var palette = $(this);
 		if (palette.data('paletteID') == paletteID) {
 			loadPalette(palette);
@@ -789,7 +764,22 @@ function loadPaletteID(paletteID) {
 	});
 }
 
+function defaultPaletteCreatorHTML(newPaletteID) {
+	return '<a id="pal' + newPaletteID + '" class="inner boxLink tb1 sloppy-newgen" '
+	+ 'style="">'
+	+ '<span class="titty">New Palette</span>'
+	+ '<br>'
+	+ '<div class="col1 swatchBlock" style="background: #000000;"></div>'
+	+ '<div class="col2 swatchBlock" style="background: #444444;"></div>'
+	+ '<div class="col3 swatchBlock" style="background: #888888;"></div>'
+	+ '<div class="col4 swatchBlock" style="background: #dddddd;"></div>'
+	+ '<div class="col5 swatchBlock" style="background: #ffffff;"></div>'
+	+ '<br style="clear:both;">'
+	+ '</a><div class="hMiniSeperator">&nbsp;</div>'
+}
+
 function sloppyPickorzHTMLSetup() {
+	// setup new html -----
 	$('span:contains("PaletteEditor")').after(
 		'<span class="t2">v2.0</span>'
 	);
@@ -805,7 +795,7 @@ function sloppyPickorzHTMLSetup() {
 		'margin': '4px 40px 4px 0'
 	})
 	$('#CPsave').after(
-		' <a href="Duplicate" id="CPDuplicate" class="CPicon" rel="Duplicate Palette O:">'
+		' <a href="Duplicate" id="CPDuplicate" class="CPicon" rel="Duplicate Palette O: b10">'
 		+ '<div class="botb-icon icons-zip"></div>'
 		+ '</a>'
 	);
@@ -814,23 +804,154 @@ function sloppyPickorzHTMLSetup() {
 		+ '<div class="botb-icon icons-outbound"></div>'
 		+ '</a>'		
 	);
+	// button events -----
+	/* 
+		--- ajax info ---
+		[NEW PALETTE]
+			url: http://battleofthebits.org/palette/AjaxNew/
+			response:
+				EPICWINZ([0-9]*)
+				Earn more boons, n00b! :D/
+		[SAVE PALETTE]
+			url: http:/battleofthebits.org/palette/AjaxSave/####/
+			form: 
+				paletteID: ####
+				title: text
+				color1: #RRGGBB
+				color2: #RRGGBB
+				color3: #RRGGBB
+				color4: #RRGGBB
+				color5: #RRGGBB
+			response: 
+				EPICWINZ
+				EPIC SERVER FAIL =O
+				Not your palette, n00b! :0
+		[SET AS PALETTE]
+			url: http://battleofthebits.org/palette/AjaxSet/####/
+			response:
+				EPICWINZ
+				EPIC SERVER FAIL =O
+		-----------------
+	*/
+	var msgSpan = $('#CPmsg span');
+
+	// when debug's on: 
+	// always returns success w/o actually
+	// modifying the palettes server-side
+
+	$('#paletteMenu').find('.botb-icon').hover(
+		function() {
+			var icon = $(this).parent();
+			msgSpan.stop(false, true).hide();
+			msgSpan.text(icon.attr('rel'));
+			msgSpan.fadeIn(200); 
+		}, function() {
+			msgSpan.fadeOut(200);
+		}
+	);
+
+	$('#CPDuplicate').click(function(e){
+		e.preventDefault();
+		var palette = getPalette(activePaletteID);
+		var title = getPaletteTitle(palette);
+		var colors = getPaletteColors(palette);
+		msgSpan.text('duplicating palette...');
+		if (!$('#CPpalette_new').click()) {
+			msgSpan.text('BORKED! D: no new palette!!!!').show();
+			return false;
+		}
+		$('.swatch').find('.colorwell').each(function(index) {
+			var colorwell = $(this);
+			colorwell.val(colors[index]);
+			colorwellProcess(colorwell);
+		});
+		var palette = getPalette(activePaletteID);
+		palette.children('.titty').text(title);
+		activePaletteTitle().val(title);
+		palette.data('original', {
+			title: title,
+			colors: colors
+		});
+		if (!$('#CPsave').click()) {
+			msgSpan.text('made new palette, but failed saving )-: !! (maybe try saving???)').show();
+			return false;
+		}
+		msgSpan.text('DUPED !! O=').show();
+	});
+
+	$('#CPpalette_new').click(function(e)  {
+		e.preventDefault();
+		msgSpan.text('creating new palette...');
+		var paletteID = $('#paletteID').text();
+		if (SLOPPY_DEBUG) {
+			msgSpan.text('Thanks for the boons, n00b!').show();
+			var newPaletteID = SLOPPY_DEBUG_PAL;
+			SLOPPY_DEBUG_PAL++;
+			var newPaletteHTML = defaultPaletteCreatorHTML(newPaletteID);
+			$(BOTB_PALETTES_PANEL_ID).prepend(newPaletteHTML);
+			var palette = $('.sloppy-newgen');
+			setupPaletteForSloppy(palette, newPaletteID);
+			loadPaletteID(newPaletteID);
+			palette.hide().fadeIn(500);
+			return true;
+		}
+		$.get('/palette/AjaxNew/', '', function(data) {
+			successRegex = /EPICWINZ([0-9]+)/g;
+			if (successRegex.test(data)) {
+				msgSpan.text('Thanks for the boons, n00b!').show();
+				var match = successRegex.exec(data);
+				var newPaletteID = match[1];
+				var newPaletteHTML = defaultPaletteCreatorHTML(newPaletteID);
+				$(BOTB_PALETTES_PANEL_ID).prepend(newPaletteHTML);
+				var palette = $('.sloppy-newgen');
+				setupPaletteForSloppy(palette, newPaletteID);
+				loadPaletteID(newPaletteID);
+				return true;
+			}
+			else  {
+				msgSpan.text(data).show();
+				return false;
+			}
+		});
+	});
+
+	$('#CPsave').click(function(e) {
+		e.preventDefault();
+		msgSpan.text('saving...');
+		var palette = getPalette(activePaletteID);
+		var colors = getPaletteColors(palette);
+		var ajaxObject = {
+			'paletteID': activePaletteID,
+			'title': activePaletteTitle().val()		
+		};
+		if (SLOPPY_DEBUG) {
+			msgSpan.text('Your changes have been saved.').show();
+			palette.data('saved', true);
+			updateUserPalettePane();
+			return true;
+		}
+		$.post('/palette/AjaxSave/'+activePaletteID+'/', ajaxObject, function(data)  {
+			if (data === 'EPICWINZ') {
+				msgSpan.text('Your changes have been saved.').show();
+				palette.data('saved', true);
+				updateUserPalettePane();
+				return true;
+			}
+			else  {
+				msgSpan.text(data).show();
+				return false;
+			}
+		});
+	});
 }
 
-function paletteInitProcessing() {
-	var palette = $(this);
-	urlArray = $(this).attr('href').split('/');
-	for(var i=0; i<urlArray.length; i++) {
-		if (urlArray[i].trim().length === 0) {
-			urlArray.splice(i, 1);
-			i--;
-		}
-	}
-	var paletteID = urlArray[urlArray.length-1];
+function setupPaletteForSloppy(palette, paletteID) {
+	palette.removeClass('sloppy-newgen');
 	palette.data('paletteID', paletteID);
 	palette.click(function() {
 		loadPaletteID(paletteID);
 	});
-	if (palette.parent().attr('id') === 'botbrPaletts') {
+	if (checkIfUserPaletteDirect(palette)) {
 		// the botbrs own palettes
 		palette.prepend(
 			'<div class="botb-icon icons-pencil sloppy-current" style="display:none"></div>'
@@ -846,6 +967,19 @@ function paletteInitProcessing() {
 		colors: colors
 	})
 	palette.removeAttr('href');
+}
+
+function paletteInitProcessing() {
+	var palette = $(this);
+	urlArray = $(this).attr('href').split('/');
+	for(var i=0; i<urlArray.length; i++) {
+		if (urlArray[i].trim().length === 0) {
+			urlArray.splice(i, 1);
+			i--;
+		}
+	}
+	var paletteID = urlArray[urlArray.length-1];
+	setupPaletteForSloppy(palette, paletteID);
 }
 
 function swatchInitProcessing() {
@@ -872,7 +1006,7 @@ function swatchInitProcessing() {
 	});
 	// create handlers for changes
 	colorwell.on('paste keyup change', function() {
-		colorwellProcess($(this), true);
+		colorwellProcess($(this));
 		pickerUpdate($('#picker'), false);
 		// mark palette as unsaved
 		if (checkIfUserPalette(activePaletteID)) {
@@ -881,11 +1015,11 @@ function swatchInitProcessing() {
 			updateUserPalettePane();
 		}
 	});
-	colorwellProcess(colorwell, true);
+	colorwellProcess(colorwell);
 }
 
 function titleChangerSetup() {
-	$('input[name="title"]').on("change keyup paste", function() {
+	activePaletteTitle().on("change keyup paste", function() {
 		if (!checkIfUserPalette(activePaletteID)) return;
 		var input = $(this);
 		var palette = getUserPalette(activePaletteID);
@@ -895,7 +1029,12 @@ function titleChangerSetup() {
 	});
 }
 
-var activePaletteID; // global variable, current working-space palette
+// global
+var activePaletteID; // current working-space palette
+
+var SLOPPY_DEBUG_PAL = 9999;
+var SLOPPY_DEBUG = true;
+var BOTB_PALETTES_PANEL_ID = '#botbrPaletts';
 
 $(document).ready(function() {
 	activePaletteID = $('#paletteID').text();
