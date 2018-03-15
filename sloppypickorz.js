@@ -633,6 +633,18 @@ function pickerInit(picker) {
 	-----------------
 */
 
+function getRecentPalette(paletteID) {
+	var returnPalette = null;
+	$('.inner.clearfix:contains("Recent Palettes")').children('.inner.boxLink.tb1').each(function() {
+		var palette = $(this);
+		if (palette.data('paletteID') == paletteID) {
+			returnPalette = palette;
+			return false; // break .each()
+		}
+	});
+	return returnPalette;
+}
+
 function getUserPalette(paletteID) {
 	var returnPalette = null;
 	$('#botbrPaletts').children('[id^="pal"]').each(function() {
@@ -641,6 +653,13 @@ function getUserPalette(paletteID) {
 			returnPalette = palette;
 	});
 	return returnPalette;
+}
+
+function getPalette(paletteID){
+	var returnPalette = null;
+	returnPalette = getUserPalette(paletteID);
+	if (returnPalette) return returnPalette;
+	return getRecentPalette(paletteID);
 }
 
 function updateUserPalettePane() {
@@ -663,6 +682,10 @@ function checkIfUserPalette(paletteID) {
 			returnCheck = true;
 	});
 	return returnCheck;
+}
+
+function checkIfUserPaletteDirect(palette) {
+	return (palette.children('.titty').length != 0);
 }
 
 function extractSwatchBlockColor(swatchBlock) {
@@ -692,13 +715,25 @@ function getPaletteColors(palette) {
 	return colors;
 }
 
+function getPaletteTitle(palette) {
+	if (checkIfUserPaletteDirect(palette))
+		return palette.children('.titty').text();
+	return palette.find('.hMiniSeperator').next().text();
+}
+
+function createHiddenPalette(paletteID) {
+	$('.inner.clearfix:contains("Recent Palettes")').append(
+		'<a id="sloppy-unknown-palette" class="inner boxLink tb1" style="display:none"></a>'
+	);
+	$('#sloppy-unknown-palette').data('paletteID', paletteID);
+}
+
 function loadPalette(palette) {
 	activePaletteID = palette.data('paletteID');
 	updateUserPalettePane();
 	if (palette.attr('id') === "sloppy-unknown-palette") {
 		// if loading a palette not on the page (like, by url)
 		$('#CPsave').css('display', 'none');
-		$('#CPRevert').css('display', 'none');
 		$('#sloppy-palinfo').css('display', 'inline');
 		$('#sloppy-palinfo-creator').text("unknown !! O:");
 		$('#sloppy-palinfo-title').text($('input[name="title"]').val());
@@ -713,21 +748,19 @@ function loadPalette(palette) {
 		colorwell.val(rgbValue);
 		colorwellProcess(colorwell, true);
 	});
-	if (palette.children('.titty').length != 0) {
+	if (checkIfUserPaletteDirect(palette)) {
 		// user's own palette
-		$('input[name=title]').val(palette.children('.titty').text())
+		$('input[name=title]').val(getPaletteTitle(palette));
 		$('#CPsave').css('display', 'inline');
-		$('#CPRevert').css('display', 'inline');
 		$('#sloppy-palinfo').css('display', 'none');
 		$('#paletteTitle').css('display', 'inline');
 		updateUserPalettePane();
 	} else {
 		// palette from the recent palettes list
 		$('#CPsave').css('display', 'none');
-		$('#CPRevert').css('display', 'none');
 		$('#sloppy-palinfo').css('display', 'inline');
 		$('#sloppy-palinfo-creator').text(palette.find('.tb1').text());
-		$('#sloppy-palinfo-title').text(palette.find('.hMiniSeperator').next().text());
+		$('#sloppy-palinfo-title').text(getPaletteTitle(palette));
 		$('#paletteTitle').css('display', 'none');
 	}
 	pickerUpdate($('#picker'), false);
@@ -754,16 +787,6 @@ function loadPaletteID(paletteID) {
 			return false; // break .each()
 		}
 	});
-	if (found) return;
-	// unknown! probably loaded via url (probably)
-	if ($('#sloppy-unknown-palette').length == 0) {
-		$('.inner.clearfix:contains("Recent Palettes")').append(
-			'<a id="sloppy-unknown-palette" class="inner boxLink tb1" style="display:none"></a>'
-		);
-	}
-	var palette = $('#sloppy-unknown-palette');
-	palette.data('paletteID', paletteID);
-	loadPalette(palette);
 }
 
 function sloppyPickorzHTMLSetup() {
@@ -771,7 +794,7 @@ function sloppyPickorzHTMLSetup() {
 		'<span class="t2">v2.0</span>'
 	);
 	$('#paletteTitle').after(
-		'<div id="sloppy-palinfo" style="width: 200px">'
+		'<div id="sloppy-palinfo" style="width: 200px;display: none">'
 		+ '<span class="tb2" id="sloppy-palinfo-title">Hidden Title</span>'
 		+ '<span class="t1"> by </span>'
 		+ '<span class="tb2" id="sloppy-palinfo-creator">BotBr</span>'
@@ -815,16 +838,13 @@ function paletteInitProcessing() {
 			+ '<div class="botb-icon icons-alert" style="display:inline-block"></div><br></div>'
 		);
 		palette.data('saved', true);
-		var title = palette.children('.titty').text();
-		var colors = getPaletteColors(palette);
-		palette.data('original', {
-			title: title,
-			colors: colors
-		})
-		console.log(title);
-		console.log(colors);
-		console.log(palette.data('original'));
 	}
+	var title = getPaletteTitle(palette);
+	var colors = getPaletteColors(palette);
+	palette.data('original', {
+		title: title,
+		colors: colors
+	})
 	palette.removeAttr('href');
 }
 
@@ -861,6 +881,7 @@ function swatchInitProcessing() {
 			updateUserPalettePane();
 		}
 	});
+	colorwellProcess(colorwell, true);
 }
 
 function titleChangerSetup() {
@@ -879,6 +900,13 @@ var activePaletteID; // global variable, current working-space palette
 $(document).ready(function() {
 	activePaletteID = $('#paletteID').text();
 
+	// activePaletteID = 1; (testing hidden palettes)
+	if (!getPalette(activePaletteID)) {
+		// palette does not exist on page, create it
+		// (if visiting directly by url, and not on recent list)
+		createHiddenPalette(activePaletteID);
+	}
+
 	// remove text shadows (might implement later)
 	$('head').children('style:contains("#pageWrap{text-shadow")').remove();
 	$('#pageWrap').css('text-shadow', '');
@@ -894,5 +922,4 @@ $(document).ready(function() {
 	titleChangerSetup();
 	sloppyPickorzHTMLSetup();
 	loadPaletteID(activePaletteID);
-
 });
