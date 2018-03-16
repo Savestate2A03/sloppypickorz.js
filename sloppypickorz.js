@@ -406,6 +406,29 @@ function radToDeg(r) {
   return r*(180/Math.PI);
 }
 
+function getBotBRGBBars() {
+	return {
+		r: $('#RGBr'),
+		g: $('#RGBg'),
+		b: $('#RGBb')
+	}
+}
+
+function setBotBRGBBars(bars, rgb) {
+	bars.r.css({
+		'width': rgb.r + 'px',
+		'background': 'rgb('+rgb.r+',0,0)'
+	});
+	bars.g.css({
+		'width': rgb.g + 'px',
+		'background': 'rgb(0,'+rgb.g+',0)'
+	});
+	bars.b.css({
+		'width': rgb.b + 'px',
+		'background': 'rgb(0,0,'+rgb.b+')'
+	});
+}
+
 function pickerUpdate(picker, useInternal) {
 	var hsl;
 	if (useInternal) {
@@ -416,7 +439,7 @@ function pickerUpdate(picker, useInternal) {
 		if (picker.data('colorwell') == null) return;
 		// hsl calculation
 		var hex = picker.data('colorwell').val();
-		if (!hexValidator(hex)) return; // don't process bad hex but still attach
+		if (!hexValidator(hex)) return; // don't process bad hex
 		hsl = rgbToHSL(hexToRGB(hex));
 		picker.data('hsl', hsl);
 	}
@@ -450,6 +473,10 @@ function pickerUpdate(picker, useInternal) {
 	color.css({
 		'background' : hueColor
 	});
+	// botb rgb bars
+	var bars = getBotBRGBBars();
+	var rgb  = hslToRGB(picker.data('hsl'));
+	setBotBRGBBars(bars, rgb);
 }
 
 function pickerAttach(picker, colorwell) {
@@ -737,6 +764,11 @@ function loadPalette(palette) {
 		$('#sloppy-palinfo-title').text(original.title);
 		$('#paletteTitle').css('display', 'none');	
 		setColorwells(original.colors);
+		window.history.replaceState(
+			{},
+			original.title + ' by unknown ('+activePaletteID+')',
+			PALETTE_EDITOR_LOCATION+activePaletteID
+		);
 		return;
 	}
 	var colors = palette.children('.swatchBBlock, .swatchBlock');
@@ -749,18 +781,31 @@ function loadPalette(palette) {
 	});
 	if (checkIfUserPaletteDirect(palette)) {
 		// user's own palette
-		$('input[name=title]').val(getPaletteTitle(palette));
+		var title = getPaletteTitle(palette);
+		$('input[name=title]').val(title);
 		$('#CPsave').css('display', 'inline');
 		$('#sloppy-palinfo').css('display', 'none');
 		$('#paletteTitle').css('display', 'inline');
 		updateUserPalettePane();
+		window.history.replaceState(
+			{},
+			title + ' ('+activePaletteID+')',
+			PALETTE_EDITOR_LOCATION+activePaletteID
+		);
 	} else {
 		// palette from the recent palettes list
 		$('#CPsave').css('display', 'none');
 		$('#sloppy-palinfo').css('display', 'inline');
-		$('#sloppy-palinfo-creator').text(palette.find('.tb1').text());
-		$('#sloppy-palinfo-title').text(getPaletteTitle(palette));
+		var creator = palette.find('.tb1').text();
+		var title = getPaletteTitle(palette);
+		$('#sloppy-palinfo-creator').text(creator);
+		$('#sloppy-palinfo-title').text(title);
 		$('#paletteTitle').css('display', 'none');
+		window.history.replaceState(
+			{},
+			title + ' by ' + creator + ' ('+activePaletteID+')',
+			PALETTE_EDITOR_LOCATION+activePaletteID
+		);
 	}
 	pickerUpdate(getBotBPicker(), false);
 }
@@ -877,10 +922,6 @@ function sloppyPickorzHTMLSetup() {
 	*/
 	var msgSpan = $('#CPmsg span');
 
-	// when debug's on: 
-	// always returns success w/o actually
-	// modifying the palettes server-side
-
 	$('#paletteMenu').find('.botb-icon').hover(
 		function() {
 			var icon = $(this).parent();
@@ -899,12 +940,6 @@ function sloppyPickorzHTMLSetup() {
 			return;
 		}
 		msgSpan.text('setting default palette...');
-		// ----- DEBUG -----
-		if (SLOPPY_DEBUG) {
-			msgSpan.text('This is now your default palette.').show();
-			return;
-		}
-		// ----- END DEBUG -----
 		$.get('/palette/AjaxSet/'+activePaletteID+'/', '', function(data)  {
 			if (data=='EPICWINZ') {
 				msgSpan.text('This is now your default palette.').show();
@@ -944,24 +979,23 @@ function sloppyPickorzHTMLSetup() {
 				var newPaletteID = match[1];
 				var newPaletteHTML = defaultPaletteCreatorHTML(newPaletteID);
 				getPalettePanel().prepend(newPaletteHTML);
+				// set palette and set it up
 				var palette = $('.sloppy-newgen');
 				setupPaletteForSloppy(palette, newPaletteID);
 				// set as current palette
-				loadPaletteID(newPaletteID);
-				// set old colors
+				loadPalette(palette);
+				// populate with old info
 				setColorwells(colors);
-				// update the picker
-				pickerUpdate(getBotBPicker(), false);
-				// reload palette based on new ID (not necessary maybe)
-				var palette = getPalette(activePaletteID);
-				palette.hide().fadeIn(500);
-				// resave old stuff
 				palette.children('.titty').text(title);
 				activePaletteTitle().val(title);
 				palette.data('original', {
 					title: title,
 					colors: colors
 				});
+				// update the picker
+				pickerUpdate(getBotBPicker(), false);
+				// fade it in
+				palette.hide().fadeIn(500);
 				palette.data('saved', false); // not yet ...
 				msgSpan.text('saving...').show();
 				var ajaxObject = {
@@ -977,7 +1011,7 @@ function sloppyPickorzHTMLSetup() {
 						palette.data('saved', true);
 					}
 					else  {
-						msgSpan.text('server Borked ! (try manually saving)').show();
+						msgSpan.text('server Borked X__x (try manually saving)').show();
 					}
 					updateUserPalettePane();
 				});
@@ -991,19 +1025,6 @@ function sloppyPickorzHTMLSetup() {
 	$('#CPpalette_new').click(function(e)  {
 		e.preventDefault();
 		msgSpan.text('creating new palette...');
-		// ----- DEBUG -----
-		if (SLOPPY_DEBUG) {
-			msgSpan.text('Thanks for the boons, n00b!').show();
-			var newPaletteID = SLOPPY_DEBUG_PAL;
-			SLOPPY_DEBUG_PAL++;
-			var newPaletteHTML = defaultPaletteCreatorHTML(newPaletteID);
-			getPalettePanel().prepend(newPaletteHTML);
-			var palette = $('.sloppy-newgen');
-			setupPaletteForSloppy(palette, newPaletteID);
-			loadPaletteID(newPaletteID);
-			return true;
-		}
-		// ----- END DEBUG -----
 		$.get('/palette/AjaxNew/', '', function(data) {
 			var successRegex = /EPICWINZ([0-9]+)/;
 			if (successRegex.test(data)) {
@@ -1014,7 +1035,7 @@ function sloppyPickorzHTMLSetup() {
 				getPalettePanel().prepend(newPaletteHTML);
 				var palette = $('.sloppy-newgen');
 				setupPaletteForSloppy(palette, newPaletteID);
-				loadPaletteID(newPaletteID);
+				loadPalette(palette);
 				palette.hide().fadeIn(500);
 			}
 			else  {
@@ -1035,18 +1056,6 @@ function sloppyPickorzHTMLSetup() {
 		for (var i=0; i<colors.length; i++) {
 			ajaxObject[('color' + (i + 1))] = colors[i];
 		}
-		// ----- DEBUG -----
-		if (SLOPPY_DEBUG) {
-			msgSpan.text('Your changes have been saved.').show();
-			palette.data('saved', true);
-			palette.data('original', {
-				title: activePaletteTitle().val(),
-				colors: colors
-			});
-			updateUserPalettePane();
-			return true;
-		}
-		// ----- END DEBUG -----
 		$.post('/palette/AjaxSave/'+activePaletteID+'/', ajaxObject, function(data)  {
 			if (data === 'EPICWINZ') {
 				msgSpan.text('Your changes have been saved.').show();
@@ -1055,11 +1064,11 @@ function sloppyPickorzHTMLSetup() {
 					title: activePaletteTitle().val(),
 					colors: colors
 				});
-				updateUserPalettePane();
 			}
 			else  {
 				msgSpan.text(data).show();
 			}
+			updateUserPalettePane();
 		});
 	});
 }
@@ -1177,7 +1186,9 @@ function titleChangerSetup() {
 
 // global
 var activePaletteID; // current working-space palette
+var PALETTE_EDITOR_LOCATION = '/barracks/PaletteEditor/';
 
+// debug
 var SLOPPY_DEBUG_PAL = 9999;
 var SLOPPY_DEBUG = false;
 
