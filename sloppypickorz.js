@@ -407,26 +407,22 @@ function radToDeg(r) {
 }
 
 function getBotBRGBBars() {
-	return {
-		r: $('#RGBr'),
-		g: $('#RGBg'),
-		b: $('#RGBb')
-	}
+	return $('#RGBlife .RGBbed');
 }
 
 function setBotBRGBBars(bars, rgb) {
-	bars.r.css({
+	bars.find('#RGBr').css({
 		'width': rgb.r + 'px',
 		'background': 'rgb('+rgb.r+',0,0)'
-	});
-	bars.g.css({
+	}).data('amt', rgb.r);
+	bars.find('#RGBg').css({
 		'width': rgb.g + 'px',
 		'background': 'rgb(0,'+rgb.g+',0)'
-	});
-	bars.b.css({
+	}).data('amt', rgb.g);
+	bars.find('#RGBb').css({
 		'width': rgb.b + 'px',
 		'background': 'rgb(0,0,'+rgb.b+')'
-	});
+	}).data('amt', rgb.b);
 }
 
 function pickerUpdate(picker, useInternal) {
@@ -474,7 +470,7 @@ function pickerUpdate(picker, useInternal) {
 		'background' : hueColor
 	});
 	// botb rgb bars
-	var bars = getBotBRGBBars();
+	var bars = picker.data('bars');
 	var rgb  = hslToRGB(picker.data('hsl'));
 	setBotBRGBBars(bars, rgb);
 }
@@ -484,7 +480,7 @@ function pickerAttach(picker, colorwell) {
 	pickerUpdate(picker, false);
 }
 
-function pickerInit(picker) {
+function pickerInit(picker, bars) {
 	/* 
 		set up color wheel
 		http://battleofthebits.org/styles/img/wheel.png
@@ -574,15 +570,17 @@ function pickerInit(picker) {
 		l: '0.5'
 	});
 	markerH.add(wheel).mousedown(function(e) {
+		e.preventDefault();
 		var marker = $(this);
 		var mouseHueTracker = function(e) {
+			e.preventDefault();
 			var xPos = e.pageX - base.offset().left;
 			var yPos = e.pageY - base.offset().top;
 			var baseCenterX = marker.parent().width()/2;
 			var baseCenterY = marker.parent().height()/2;
 			var radians = Math.atan2(yPos - baseCenterY, xPos - baseCenterX);
 			var degrees = radToDeg(radians)+90;
-			var colorwell = marker.parent().parent().data('colorwell');
+			var colorwell = picker.data('colorwell');
 			var hsl = picker.data('hsl');
 			hsl.h = degrees;
 			var newHex = rgbToHex(hslToRGB(hsl));
@@ -591,17 +589,19 @@ function pickerInit(picker) {
 			picker.data('hsl', hsl);
 			pickerUpdate(picker, true);
 		}
-		$('body').css({ 'user-select': 'none'});
+		$('body').css({'user-select': 'none'});
 		mouseHueTracker(e); // run once on click
 		$('body').mousemove(mouseHueTracker);
 		$('body').mouseup(function() {
-			$('body').css({ 'user-select': 'auto'});
+			$('body').css({'user-select': 'auto'});
 			$('body').off('mousemove', mouseHueTracker);
 		});
 	});
 	markerSL.add(mask).mousedown(function(e) {
+		e.preventDefault();
 		var marker = markerSL;
 		var mouseSLTracker = function(e) {
+			e.preventDefault();
 			var colorSquare = marker.parent().children('.sloppy-color');
 			var xPos = e.pageX - base.offset().left;
 			var yPos = e.pageY - base.offset().top;
@@ -611,7 +611,7 @@ function pickerInit(picker) {
 			var colorSizeY = colorSquare.height();
 			var saturation = clamp(1-(xPos-colorStartX)/colorSizeX,0,1);
 			var luminance = clamp(1-(yPos-colorStartY)/colorSizeY,0,1);
-			var colorwell = marker.parent().parent().data('colorwell');
+			var colorwell = picker.data('colorwell');
 			var hsl = picker.data('hsl');
 			hsl.s = saturation;
 			hsl.l = luminance;
@@ -621,12 +621,46 @@ function pickerInit(picker) {
 			picker.data('hsl', hsl);
 			pickerUpdate(picker, true);
 		}
-		$('body').css({ 'user-select': 'none'});
+		$('body').css({'user-select': 'none'});
 		mouseSLTracker(e); // run once on click
 		$('body').mousemove(mouseSLTracker);
 		$('body').mouseup(function() {
-			$('body').css({ 'user-select': 'auto'});
+			$('body').css({'user-select': 'auto'});
 			$('body').off('mousemove', mouseSLTracker);
+		});
+	});
+	// set up RGB bars
+	picker.data('bars', bars);
+	bars.mousedown(function(e) {
+		var barBed = $(this);
+		e.preventDefault();
+		var barTracker = function(e) {
+			e.preventDefault();
+			var bar = barBed.find('.RGBbar');
+			var xPos = e.pageX - barBed.offset().left;
+			var barStartX = bar.position().left;
+			var barSizeX = barBed.width();
+			var barPercent = clamp((xPos-barStartX)/barSizeX,0,1);
+			var barWidth = barPercent * barSizeX;
+			var barValue = Math.round(barPercent * 255.0);
+			bar.css('width', barWidth + 'px');
+			bar.data('amt', barValue);
+			var rgbBars = getBotBRGBBars();
+			var colorwell = picker.data('colorwell');
+			colorwell.val(rgbToHex({
+				r: rgbBars.find('#RGBr').data('amt'),
+				g: rgbBars.find('#RGBg').data('amt'),
+				b: rgbBars.find('#RGBb').data('amt')
+			}));
+			colorwell.change();
+			pickerUpdate(picker, false);
+		}
+		$('body').css({'user-select': 'none'});
+		barTracker(e); // run once on click
+		$('body').mousemove(barTracker);
+		$('body').mouseup(function() {
+			$('body').css({'user-select': 'auto'});
+			$('body').off('mousemove', barTracker);
 		});
 	});
 }
@@ -784,6 +818,7 @@ function loadPalette(palette) {
 		var title = getPaletteTitle(palette);
 		$('input[name=title]').val(title);
 		$('#CPsave').css('display', 'inline');
+		$('#CPLoadOriginal').css('display', 'inline');
 		$('#sloppy-palinfo').css('display', 'none');
 		$('#paletteTitle').css('display', 'inline');
 		updateUserPalettePane();
@@ -795,6 +830,7 @@ function loadPalette(palette) {
 	} else {
 		// palette from the recent palettes list
 		$('#CPsave').css('display', 'none');
+		$('#CPLoadOriginal').css('display', 'inline');
 		$('#sloppy-palinfo').css('display', 'inline');
 		var creator = palette.find('.tb1').text();
 		var title = getPaletteTitle(palette);
@@ -1090,13 +1126,14 @@ function createHiddenPalette(paletteID) {
 
 function addHiddenPaletteButton(palette) {
 	$('#CPset').after(
-		' <a href="LoadOriginal" id="CPLoadOriginal" class="CPicon" rel="Load teh linked palette.">'
+		' <a href="LoadOriginal" style="display:none" id="CPLoadOriginal" class="CPicon" rel="Load teh linked palette.">'
 		+ '<div class="botb-icon icons-trophiez-trophy_pc-x801_s"></div>'
 		+ '</a>'
 	);
 	$('#CPLoadOriginal').click(function(e) {
 		e.preventDefault();
 		loadPalette(palette);
+		$('#CPLoadOriginal').css('display', 'none');
 	});
 }
 
@@ -1211,7 +1248,7 @@ $(document).ready(function() {
 	$('#pageWrap').css('text-shadow', '');
 	$('a').css('text-shadow', '');
 
-	pickerInit(getBotBPicker()); // init picker
+	pickerInit(getBotBPicker(), getBotBRGBBars()); // init picker
 	$('.swatch').each(swatchInitProcessing);
 	$('#swatch1').mousedown(); // select 1st swatch
 
