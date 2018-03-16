@@ -723,23 +723,18 @@ function setColorwells(colors) {
 	pickerUpdate(getBotBPicker(), false);
 }
 
-function createHiddenPalette(paletteID) {
-	$('.inner.clearfix:contains("Recent Palettes")').append(
-		'<a id="sloppy-unknown-palette" class="inner boxLink tb1" style="display:none"></a>'
-	);
-	$('#sloppy-unknown-palette').data('paletteID', paletteID);
-}
-
 function loadPalette(palette) {
 	activePaletteID = palette.data('paletteID');
 	updateUserPalettePane();
 	if (palette.attr('id') === "sloppy-unknown-palette") {
 		// if loading a palette not on the page (like, by url)
+		var original = palette.data('original');
 		$('#CPsave').css('display', 'none');
 		$('#sloppy-palinfo').css('display', 'inline');
 		$('#sloppy-palinfo-creator').text("unknown !! O:");
-		$('#sloppy-palinfo-title').text(activePaletteTitle().val());
+		$('#sloppy-palinfo-title').text(original.title);
 		$('#paletteTitle').css('display', 'none');	
+		setColorwells(original.colors);
 		return;
 	}
 	var colors = palette.children('.swatchBBlock, .swatchBlock');
@@ -806,7 +801,18 @@ function defaultPaletteCreatorHTML(newPaletteID) {
 }
 
 function sloppyPickorzHTMLSetup() {
-	// setup new html -----
+	// setup new html -----	
+
+	// botb doesn't gen save on non-user palettes
+	if ($('#CPsave').length <= 0) {
+		var newPaletteIcon = $('#CPpalette_new');
+		newPaletteIcon.after(
+			' <a href="Save" id="CPsave" class="CPicon" rel="Save your wrok!  :D">'
+			+'<div class="botb-icon icons-disk " title="" alt="" style="">'
+			+'</div></a> '
+		);
+	}
+
 	$('span:contains("PaletteEditor")').after(
 		'<span class="t2">v2.0</span>'
 	);
@@ -817,12 +823,16 @@ function sloppyPickorzHTMLSetup() {
 		+ '<span class="tb2" id="sloppy-palinfo-creator">BotBr</span>'
 		+ '</div>'
 	);
+	$('#paletteTitle').css({
+		'float': 'right',
+		'margin': '4px 10px 4px 0'
+	});
 	$('#sloppy-palinfo').css({
 		'float': 'right',
-		'margin': '4px 40px 4px 0'
-	})
+		'margin': '4px 10px 4px 0'
+	});
 	$('#CPsave').after(
-		' <a href="Duplicate" id="CPDuplicate" class="CPicon" rel="Duplicate Palette O: b10">'
+		' <a href="Duplicate" id="CPDuplicate" class="CPicon" rel="Duplicate palette O: b10">'
 		+ '<div class="botb-icon icons-zip"></div>'
 		+ '</a>'
 	);
@@ -831,6 +841,9 @@ function sloppyPickorzHTMLSetup() {
 		+ '<div class="botb-icon icons-outbound"></div>'
 		+ '</a>'		
 	);
+
+
+
 	// button events -----
 	/* 
 		--- ajax info ---
@@ -877,6 +890,29 @@ function sloppyPickorzHTMLSetup() {
 		}
 	);
 
+	$('#CPset').click(function(e)  {
+		e.preventDefault();
+		if (!getPalette(activePaletteID).data('saved')) {
+			msgSpan.text('save yr palette 1st n00b !! d:<');
+			return;
+		}
+		msgSpan.text('setting default palette...');
+		// ----- DEBUG -----
+		if (SLOPPY_DEBUG) {
+			msgSpan.text('This is now your default palette.').show();
+			return;
+		}
+		// ----- END DEBUG -----
+		$.get('/palette/AjaxSet/'+activePaletteID+'/', '', function(data)  {
+			if (data=='EPICWINZ') {
+				msgSpan.text('This is now your default palette.').show();
+			}
+			else  {
+				msgSpan.text(data).show();
+			}
+		});
+	});
+
 	$('#CPRevert').click(function(e) {
 		e.preventDefault();
 		var palette = getPalette(activePaletteID);
@@ -920,7 +956,6 @@ function sloppyPickorzHTMLSetup() {
 	$('#CPpalette_new').click(function(e)  {
 		e.preventDefault();
 		msgSpan.text('creating new palette...');
-		var paletteID = $('#paletteID').text();
 		// ----- DEBUG -----
 		if (SLOPPY_DEBUG) {
 			msgSpan.text('Thanks for the boons, n00b!').show();
@@ -988,6 +1023,33 @@ function sloppyPickorzHTMLSetup() {
 				return false;
 			}
 		});
+	});
+}
+
+function createHiddenPalette(paletteID) {
+	$('.inner.clearfix:contains("Recent Palettes")').append(
+		'<a id="sloppy-unknown-palette" class="inner boxLink tb1" style="display:none"></a>'
+	);
+	var hiddenPalette = $('#sloppy-unknown-palette');
+	hiddenPalette.data('paletteID', paletteID);
+	var title = activePaletteTitle().val();
+	var colors = getSwatchColors();
+	hiddenPalette.data('original', {
+		title: title,
+		colors: colors
+	})
+	return hiddenPalette;
+}
+
+function addHiddenPaletteButton(palette) {
+	$('#CPset').after(
+		' <a href="LoadOriginal" id="CPLoadOriginal" class="CPicon" rel="Load teh linked palette.">'
+		+ '<div class="botb-icon icons-trophiez-trophy_pc-x801_s"></div>'
+		+ '</a>'
+	);
+	$('#CPLoadOriginal').click(function(e) {
+		e.preventDefault();
+		loadPalette(palette);
 	});
 }
 
@@ -1084,11 +1146,15 @@ var SLOPPY_DEBUG = true;
 $(document).ready(function() {
 	activePaletteID = $('#paletteID').text();
 
-	// activePaletteID = 1; (testing hidden palettes)
+	var availPalettes = $('a[href*="/barracks/PaletteEditor/"]');
+	availPalettes.each(paletteInitProcessing);
+
+	// activePaletteID = 1; // (testing hidden palettes)
 	if (!getPalette(activePaletteID)) {
 		// palette does not exist on page, create it
 		// (if visiting directly by url, and not on recent list)
-		createHiddenPalette(activePaletteID);
+		var hiddenPalette = createHiddenPalette(activePaletteID);
+		addHiddenPaletteButton(hiddenPalette);
 	}
 
 	// remove text shadows (might implement later)
@@ -1100,9 +1166,6 @@ $(document).ready(function() {
 	$('.swatch').each(swatchInitProcessing);
 	$('#swatch1').mousedown(); // select 1st swatch
 
-	// new cool palette editing functionality
-	var availPalettes = $('a[href*="/barracks/PaletteEditor/"]');
-	availPalettes.each(paletteInitProcessing);
 	titleChangerSetup();
 	sloppyPickorzHTMLSetup();
 	loadPaletteID(activePaletteID);
