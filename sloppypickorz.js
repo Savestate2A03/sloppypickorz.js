@@ -497,7 +497,7 @@ function pickerInit(picker) {
 	var wheel = $('<div/>' , {
 		class: 'sloppy-wheel',
 		css: {
-			'background' : 'url("styles/img/wheel.png") no-repeat',
+			'background' : 'url("/styles/img/wheel.png") no-repeat',
 			'position' : 'absolute',
 			'width' : '195px',
 			'height' : '195px'
@@ -506,7 +506,7 @@ function pickerInit(picker) {
 	var mask = $('<div/>' , {
 		class: 'sloppy-mask',
 		css: {
-			'background' : 'url("styles/img/mask.png") no-repeat',
+			'background' : 'url("/styles/img/mask.png") no-repeat',
 			'position' : 'absolute',
 			'width' : '101px',
 			'height' : '101px',
@@ -517,7 +517,7 @@ function pickerInit(picker) {
 	var markerH = $('<div/>' , {
 		class: 'sloppy-marker h-sloppy-marker',
 		css: {
-			'background' : 'url("styles/img/marker.png") no-repeat',
+			'background' : 'url("/styles/img/marker.png") no-repeat',
 			'position' : 'absolute',
 			'width' : '17px',
 			'height' : '17px',
@@ -530,7 +530,7 @@ function pickerInit(picker) {
 	var markerSL = $('<div/>' , {
 		class: 'sloppy-marker sl-sloppy-marker',
 		css: {
-			'background' : 'url("styles/img/marker.png") no-repeat',
+			'background' : 'url("/styles/img/marker.png") no-repeat',
 			'position' : 'absolute',
 			'width' : '17px',
 			'height' : '17px',
@@ -707,7 +707,9 @@ function getSwatchColors() {
 function getPaletteTitle(palette) {
 	if (checkIfUserPaletteDirect(palette))
 		return palette.children('.titty').text();
-	return palette.find('.hMiniSeperator').next().text();
+	if (palette.find('.hMiniSeperator').length > 0)
+		return palette.find('.hMiniSeperator').next().text();
+	return palette.data('original').title; // fallback
 }
 
 function activePaletteTitle() {
@@ -932,25 +934,58 @@ function sloppyPickorzHTMLSetup() {
 		var title = getPaletteTitle(palette);
 		var colors = getSwatchColors();
 		msgSpan.text('duplicating palette...');
-		if (!$('#CPpalette_new').click()) {
-			msgSpan.text('BORKED! D: no new palette!!!!').show();
-			return false;
-		}
-		setColorwells(colors);
-		pickerUpdate(getBotBPicker(), false);
-		var palette = getPalette(activePaletteID);
-		palette.children('.titty').text(title);
-		activePaletteTitle().val(title);
-		palette.data('saved', true);
-		palette.data('original', {
-			title: title,
-			colors: colors
+		var oldPaletteId = activePaletteID;
+		// make new palette
+		$.get('/palette/AjaxNew/', '', function(data) {
+			var successRegex = /EPICWINZ([0-9]+)/;
+			if (successRegex.test(data)) {
+				// make palette html & get new palette id
+				var match = data.match(successRegex);
+				var newPaletteID = match[1];
+				var newPaletteHTML = defaultPaletteCreatorHTML(newPaletteID);
+				getPalettePanel().prepend(newPaletteHTML);
+				var palette = $('.sloppy-newgen');
+				setupPaletteForSloppy(palette, newPaletteID);
+				// set as current palette
+				loadPaletteID(newPaletteID);
+				// set old colors
+				setColorwells(colors);
+				// update the picker
+				pickerUpdate(getBotBPicker(), false);
+				// reload palette based on new ID (not necessary maybe)
+				var palette = getPalette(activePaletteID);
+				palette.hide().fadeIn(500);
+				// resave old stuff
+				palette.children('.titty').text(title);
+				activePaletteTitle().val(title);
+				palette.data('original', {
+					title: title,
+					colors: colors
+				});
+				palette.data('saved', false); // not yet ...
+				msgSpan.text('saving...').show();
+				var ajaxObject = {
+					'paletteID': activePaletteID,
+					'title': activePaletteTitle().val()
+				};
+				for (var i=0; i<colors.length; i++) {
+					ajaxObject[('color' + (i + 1))] = colors[i];
+				}
+				$.post('/palette/AjaxSave/'+activePaletteID+'/', ajaxObject, function(data)  {
+					if (data === 'EPICWINZ') {
+						msgSpan.text('duped !!! :D/').show();
+						palette.data('saved', true);
+					}
+					else  {
+						msgSpan.text('server Borked ! (try manually saving)').show();
+					}
+					updateUserPalettePane();
+				});
+			} else {
+				msgSpan.text(data).show();
+				updateUserPalettePane();
+			}
 		});
-		if (!$('#CPsave').click()) {
-			msgSpan.text('made new palette, but failed saving )-: !! (maybe try saving???)').show();
-			return false;
-		}
-		msgSpan.text('DUPED !! O=').show();
 	});
 
 	$('#CPpalette_new').click(function(e)  {
@@ -966,26 +1001,24 @@ function sloppyPickorzHTMLSetup() {
 			var palette = $('.sloppy-newgen');
 			setupPaletteForSloppy(palette, newPaletteID);
 			loadPaletteID(newPaletteID);
-			palette.hide().fadeIn(500);
 			return true;
 		}
 		// ----- END DEBUG -----
 		$.get('/palette/AjaxNew/', '', function(data) {
-			successRegex = /EPICWINZ([0-9]+)/g;
+			var successRegex = /EPICWINZ([0-9]+)/;
 			if (successRegex.test(data)) {
 				msgSpan.text('Thanks for the boons, n00b!').show();
-				var match = successRegex.exec(data);
+				var match = data.match(successRegex);
 				var newPaletteID = match[1];
 				var newPaletteHTML = defaultPaletteCreatorHTML(newPaletteID);
 				getPalettePanel().prepend(newPaletteHTML);
 				var palette = $('.sloppy-newgen');
 				setupPaletteForSloppy(palette, newPaletteID);
 				loadPaletteID(newPaletteID);
-				return true;
+				palette.hide().fadeIn(500);
 			}
 			else  {
 				msgSpan.text(data).show();
-				return false;
 			}
 		});
 	});
@@ -999,6 +1032,9 @@ function sloppyPickorzHTMLSetup() {
 			'paletteID': activePaletteID,
 			'title': activePaletteTitle().val()		
 		};
+		for (var i=0; i<colors.length; i++) {
+			ajaxObject[('color' + (i + 1))] = colors[i];
+		}
 		// ----- DEBUG -----
 		if (SLOPPY_DEBUG) {
 			msgSpan.text('Your changes have been saved.').show();
@@ -1015,12 +1051,14 @@ function sloppyPickorzHTMLSetup() {
 			if (data === 'EPICWINZ') {
 				msgSpan.text('Your changes have been saved.').show();
 				palette.data('saved', true);
+				palette.data('original', {
+					title: activePaletteTitle().val(),
+					colors: colors
+				});
 				updateUserPalettePane();
-				return true;
 			}
 			else  {
 				msgSpan.text(data).show();
-				return false;
 			}
 		});
 	});
@@ -1141,7 +1179,7 @@ function titleChangerSetup() {
 var activePaletteID; // current working-space palette
 
 var SLOPPY_DEBUG_PAL = 9999;
-var SLOPPY_DEBUG = true;
+var SLOPPY_DEBUG = false;
 
 $(document).ready(function() {
 	activePaletteID = $('#paletteID').text();
