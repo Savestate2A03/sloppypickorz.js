@@ -403,7 +403,7 @@ function degToRad(d) {
 }
 
 function radToDeg(r) {
-  return r*(180/Math.PI);
+	return r*(180/Math.PI);
 }
 
 function getBotBRGBBars() {
@@ -972,7 +972,11 @@ function sloppyPickorzHTMLSetup() {
 	$('#CPset').click(function(e)  {
 		e.preventDefault();
 		if (!getPalette(activePaletteID).data('saved')) {
-			msgSpan.text('save yr palette 1st n00b !! d:<');
+			if (checkIfUserPalette(activePaletteID)) {
+				msgSpan.text('save yr palette 1st n00b !! d:<');
+			} else {
+				msgSpan.text('dupe this palette 1st n00b !! d:<');
+			}
 			return;
 		}
 		msgSpan.text('setting default palette...');
@@ -1142,6 +1146,10 @@ function setupPaletteForSloppy(palette, paletteID) {
 	palette.data('paletteID', paletteID);
 	palette.click(function(e) {
 		e.preventDefault();
+		if (!checkIfUserPalette(paletteID)) {
+			// non-user palettes reset when you click them
+			getPalette(paletteID).data('saved', true);
+		}
 		loadPaletteID(paletteID);
 	});
 	if (checkIfUserPaletteDirect(palette)) {
@@ -1151,8 +1159,8 @@ function setupPaletteForSloppy(palette, paletteID) {
 			+ '<div class="tb0 sloppy-unsaved" style="display:none;width:100%;text-align:right">&nbsp;unsaved!&nbsp;'
 			+ '<div class="botb-icon icons-alert" style="display:inline-block"></div><br></div>'
 		);
-		palette.data('saved', true);
 	}
+	palette.data('saved', true);
 	var title = getPaletteTitle(palette);
 	var colors = getPaletteColors(palette);
 	palette.data('original', {
@@ -1201,9 +1209,9 @@ function swatchInitProcessing() {
 		colorwellProcess($(this));
 		pickerUpdate(getBotBPicker(), false);
 		// mark palette as unsaved
+		var palette = getPalette(activePaletteID);
+		palette.data('saved', false);
 		if (checkIfUserPalette(activePaletteID)) {
-			var palette = getUserPalette(activePaletteID);
-			palette.data('saved', false);
 			updateUserPalettePane();
 		}
 	});
